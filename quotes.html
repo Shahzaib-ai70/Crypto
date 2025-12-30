@@ -220,9 +220,14 @@
         }
 
         function getApiBase() {
-            // Per VPS requirements: Always use relative path or window.location.origin
-            // NGINX handles proxying /api to the backend
-            return window.location.origin;
+            // For VPS/Production: use relative path if on same domain
+            if (window.location.protocol === 'file:') {
+                 // Only for local testing without server
+                 return 'http://localhost:3001';
+            }
+            // For production (VPS), return empty string to use relative path '/api'
+            // or window.location.origin if preferred. Relative is safest for proxying.
+            return ''; 
         }
 
         // Use lists.crypto as the source of truth
@@ -298,7 +303,7 @@
         async function fetchPricesRest() {
              try {
                  const symbolsParam = JSON.stringify(lists.crypto);
-                 // Try local backend first to avoid CORS issues
+                 // 1. Try local backend FIRST (Resolves CORS/Blocked issues)
                  const url = `${getApiBase()}/api/markets?symbols=${encodeURIComponent(symbolsParam)}`;
                  const res = await fetch(url);
                  if (!res.ok) throw new Error("Backend API Failed");
@@ -315,7 +320,7 @@
                  }
              } catch (e) { 
                  console.log("Backend fetch failed, trying direct", e); 
-                 // Fallback to direct Binance
+                 // 2. Fallback to direct Binance
                  try {
                      const symbolsParam = JSON.stringify(lists.crypto);
                      const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`);
@@ -331,7 +336,7 @@
                  } catch(err) {
                      console.log("All fetches failed", err);
                      
-                     // LAST RESORT: Try CoinGecko Client-Side
+                     // 3. LAST RESORT: Try CoinGecko Client-Side
                      try {
                         const geckoUrl = `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,binancecoin,ripple,solana,cardano,dogecoin,tron,litecoin,polkadot,chainlink,shiba-inu,avalanche-2,bitcoin-cash,uniswap,matic-network&vs_currencies=usd&include_24hr_change=true`;
                         const res = await fetch(geckoUrl);

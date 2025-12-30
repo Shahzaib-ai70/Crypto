@@ -629,20 +629,23 @@
             };
         }
 
-        // Helper for API Base
+        // Helper for API Base - VPS Compatible
         function getApiBase() {
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                if (window.location.port === '3001') return window.location.origin;
-                return 'http://localhost:3001';
+            // For VPS/Production: use relative path if on same domain
+            if (window.location.protocol === 'file:') {
+                 // Only for local testing without server
+                 return 'http://localhost:3001';
             }
-            return window.location.origin;
+            // For production (VPS), return empty string to use relative path '/api'
+            // or window.location.origin if preferred. Relative is safest for proxying.
+            return ''; 
         }
 
-        // Fallback REST fetch (only used if WS fails or initializing)
+        // Fallback REST fetch (Primary method if WS is blocked/failing)
         async function fetchPricesRest() {
              try {
                  const symbolsParam = JSON.stringify(TARGET_SYMBOLS);
-                 // Use intelligent API base
+                 // 1. Try Backend Proxy FIRST (Resolves CORS/Blocked issues)
                  const url = `${getApiBase()}/api/markets?symbols=${encodeURIComponent(symbolsParam)}`;
                  
                  const res = await fetch(url);
@@ -659,7 +662,8 @@
                  }
              } catch(e) { 
                  console.error("Backend fetch failed, trying direct:", e); 
-                 // Fallback to direct Binance (might fail CORS but worth a try)
+                 
+                 // 2. Fallback to direct Binance (Only if backend fails)
                  try {
                     const symbolsParam = JSON.stringify(TARGET_SYMBOLS);
                     const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`);
@@ -672,9 +676,9 @@
                     });
                     renderList(TARGET_SYMBOLS.map(s => marketData[s]).filter(Boolean));
                  } catch(err) {
-                     console.error("All fetches failed", err);
+                     console.error("Direct fetch failed", err);
                      
-                     // LAST RESORT: Try CoinGecko Client-Side
+                     // 3. Fallback to CoinGecko Client-Side (Last Resort)
                      try {
                         const geckoUrl = `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,binancecoin,ripple,solana,cardano,dogecoin,tron,litecoin,polkadot,chainlink,shiba-inu,avalanche-2,bitcoin-cash,uniswap,matic-network&vs_currencies=usd&include_24hr_change=true`;
                         const res = await fetch(geckoUrl);

@@ -127,11 +127,14 @@
     <script src="translations.js"></script>
     <script>
         function getApiBase() {
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                if (window.location.port === '3001') return window.location.origin;
-                return 'http://localhost:3001';
+            // For VPS/Production: use relative path if on same domain
+            if (window.location.protocol === 'file:') {
+                 // Only for local testing without server
+                 return 'http://localhost:3001';
             }
-            return window.location.origin;
+            // For production (VPS), return empty string to use relative path '/api'
+            // or window.location.origin if preferred. Relative is safest for proxying.
+            return ''; 
         }
         
         const API_BASE = `${getApiBase()}/api`; 
@@ -161,6 +164,13 @@
             initWebSocket();
             fetchUserData();
             setInterval(fetchUserData, 3000); // Refresh balance every 3s
+            
+            // Fallback: If WS fails, poll price from backend every 3s
+            setInterval(() => {
+                if(!ws || ws.readyState !== WebSocket.OPEN) {
+                    fetchTickerRest();
+                }
+            }, 3000);
         });
 
         function initWebSocket() {
@@ -193,12 +203,36 @@
 
             ws.onerror = (e) => {
                 console.error("WS Error", e);
+                // Trigger REST fallback immediately
+                fetchTickerRest();
             };
             
             ws.onclose = () => {
                 console.log("WS Closed");
                 setTimeout(initWebSocket, 3000);
             };
+        }
+        
+        async function fetchTickerRest() {
+             try {
+                 // Use Backend Proxy FIRST
+                 const url = `${API_BASE}/markets?symbols=${encodeURIComponent(JSON.stringify([currentSymbol]))}`;
+                 const res = await fetch(url);
+                 if(res.ok) {
+                     const data = await res.json();
+                     if(Array.isArray(data) && data.length > 0) {
+                         const item = data[0];
+                         // Mock Ticker format from backend data
+                         const ticker = {
+                             c: item.lastPrice,
+                             P: item.priceChangePercent
+                         };
+                         handleTicker(ticker);
+                     }
+                 }
+             } catch(e) {
+                 console.error("Backend ticker fetch failed", e);
+             }
         }
 
         function handleTicker(ticker) {
