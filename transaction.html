@@ -15,7 +15,6 @@
             color: #1f2937;
         }
         
-        /* Bottom Navigation Styles */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -47,229 +46,125 @@
             margin-bottom: 4px;
         }
 
-        /* Order Book Styles */
-        .order-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 4px 0;
-            font-size: 0.75rem;
-            position: relative;
-            cursor: pointer;
-        }
-        
-        .order-row:hover {
-            background-color: #f3f4f6;
-        }
-
-        .order-book-bg-red {
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            background-color: rgba(239, 68, 68, 0.15);
-            transition: width 0.3s ease-out;
-            z-index: 0;
-        }
-
-        .order-book-bg-green {
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            background-color: rgba(16, 185, 129, 0.15);
-            transition: width 0.3s ease-out;
-            z-index: 0;
-        }
-
-        .order-data {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-        }
-
         .text-green-custom { color: #10B981; }
         .text-red-custom { color: #EF4444; }
-        
-        /* Modal Styles */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 60;
-            display: none;
-            justify-content: center;
-            align-items: flex-end; /* Mobile bottom sheet style */
-        }
-        
-        .modal-content {
-            background: white;
-            width: 100%;
-            max-width: 600px; /* Desktop constraint */
-            border-top-left-radius: 20px;
-            border-top-right-radius: 20px;
-            padding: 20px;
-            max-height: 80vh;
-            overflow-y: auto;
-            animation: slideUp 0.3s ease-out;
-        }
-
-        @keyframes slideUp {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
-        }
-
-        @media (min-width: 768px) {
-            .modal-overlay {
-                align-items: center;
-            }
-            .modal-content {
-                border-radius: 20px;
-                width: 400px;
-            }
-        }
     </style>
 </head>
 <body class="pb-20">
 
     <!-- Header -->
-    <div class="flex items-center justify-between px-4 py-4 bg-white sticky top-0 z-40 shadow-sm">
-        <a href="index.html" class="text-gray-600"><i class="fa-solid fa-arrow-left text-xl"></i></a>
-        <div class="flex flex-col items-center cursor-pointer" onclick="openCoinModal()">
-            <div class="flex items-center gap-2">
-                <i class="fa-solid fa-bars text-gray-400"></i>
-                <h1 class="text-lg font-bold" id="pairName">BTC/USDT</h1>
-                <span class="bg-green-100 text-green-600 text-xs px-2 py-0.5 rounded">-0.92%</span>
-            </div>
+    <div class="flex items-center justify-between px-4 py-4 bg-white sticky top-0 z-40 border-b border-gray-100">
+        <div class="flex items-center gap-2">
+            <h1 class="text-xl font-bold">Spot</h1>
         </div>
         <div class="flex gap-4 text-gray-600">
-            <i class="fa-regular fa-star"></i>
+            <i class="fa-solid fa-chart-simple"></i>
             <i class="fa-solid fa-ellipsis-vertical"></i>
         </div>
     </div>
 
-    <!-- Main Content Grid -->
-    <div class="max-w-4xl mx-auto md:grid md:grid-cols-2 md:gap-8 md:p-4">
+    <!-- Main Content -->
+    <div class="max-w-4xl mx-auto p-4">
         
-        <!-- Left Column: Order Book (Mobile: Top) -->
-        <div class="px-4 py-2">
-            <div class="flex justify-between text-xs text-gray-400 mb-2">
-                <span>Price (USDT)</span>
-                <span>Amount</span>
-            </div>
-            
-            <!-- Asks (Sells) - Red -->
-            <div id="asks-container" class="mb-2">
-                <!-- Populated by JS -->
-            </div>
-
-            <!-- Current Price Indicator -->
-            <div class="text-center py-3 my-1 border-y border-gray-100">
-                <div class="text-2xl font-bold text-red-custom" id="currentPriceDisplay">95,245.30</div>
-                <div class="text-xs text-gray-400" id="currentPriceUsd">≈ $95,245.30</div>
-            </div>
-
-            <!-- Bids (Buys) - Green -->
-            <div id="bids-container">
-                <!-- Populated by JS -->
+        <!-- Top: Pair & Price -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-bars text-gray-400"></i>
+                <h2 class="text-xl font-bold">BTC/USDT</h2>
+                <span class="text-green-custom bg-green-50 px-2 py-0.5 rounded text-xs">+1.24%</span>
             </div>
         </div>
 
-        <!-- Right Column: Trade Form (Mobile: Bottom) -->
-        <div class="px-4 py-2 bg-white rounded-lg">
-            <!-- Buy/Sell Tabs -->
-            <div class="flex bg-gray-100 rounded-lg p-1 mb-4">
-                <button class="flex-1 py-2 rounded-md text-sm font-semibold bg-green-500 text-white shadow-sm transition-all" id="btn-buy" onclick="switchTab('buy')">Buy</button>
-                <button class="flex-1 py-2 rounded-md text-sm font-semibold text-gray-500 transition-all" id="btn-sell" onclick="switchTab('sell')">Sell</button>
-            </div>
+        <div class="grid grid-cols-2 gap-6">
+            <!-- Left: Simple Order Book (Static List) -->
+            <div>
+                <div class="flex justify-between text-xs text-gray-400 mb-2">
+                    <span>Price</span>
+                    <span>Amount</span>
+                </div>
+                <div class="space-y-1">
+                    <!-- Sells -->
+                    <div class="flex justify-between text-xs">
+                        <span class="text-red-custom">96,542.10</span>
+                        <span class="text-gray-500">0.4521</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-red-custom">96,541.00</span>
+                        <span class="text-gray-500">0.1250</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-red-custom">96,540.50</span>
+                        <span class="text-gray-500">0.8800</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-red-custom">96,539.20</span>
+                        <span class="text-gray-500">0.0500</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-red-custom">96,538.10</span>
+                        <span class="text-gray-500">1.2000</span>
+                    </div>
 
-            <!-- Order Type -->
-            <div class="flex justify-between items-center mb-4">
-                <div class="flex items-center gap-1 text-gray-700 font-medium">
-                    <span>Limit</span>
-                    <i class="fa-solid fa-caret-down text-xs"></i>
+                    <!-- Current Price -->
+                    <div class="py-2 text-center">
+                        <span class="text-lg font-bold text-green-custom">96,535.00</span>
+                        <div class="text-[10px] text-gray-400">≈ $96,535.00</div>
+                    </div>
+
+                    <!-- Buys -->
+                    <div class="flex justify-between text-xs">
+                        <span class="text-green-custom">96,534.90</span>
+                        <span class="text-gray-500">0.3300</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-green-custom">96,533.50</span>
+                        <span class="text-gray-500">0.5500</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-green-custom">96,532.10</span>
+                        <span class="text-gray-500">0.1100</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-green-custom">96,530.00</span>
+                        <span class="text-gray-500">0.9000</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-green-custom">96,528.50</span>
+                        <span class="text-gray-500">0.2500</span>
+                    </div>
                 </div>
             </div>
 
-            <!-- Inputs -->
-            <div class="space-y-3">
-                <div class="relative">
-                    <input type="number" id="priceInput" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-3 px-4 text-gray-700 focus:outline-none focus:border-green-500 transition-colors font-medium" placeholder="Price">
-                    <span class="absolute right-4 top-3.5 text-xs text-gray-400 font-medium">USDT</span>
+            <!-- Right: Form -->
+            <div>
+                <div class="flex bg-gray-100 rounded p-1 mb-4">
+                    <button class="flex-1 py-1.5 rounded text-sm font-semibold bg-green-500 text-white">Buy</button>
+                    <button class="flex-1 py-1.5 rounded text-sm font-semibold text-gray-500">Sell</button>
                 </div>
-                <div class="relative">
-                    <input type="number" id="amountInput" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-3 px-4 text-gray-700 focus:outline-none focus:border-green-500 transition-colors font-medium" placeholder="Amount">
-                    <span class="absolute right-4 top-3.5 text-xs text-gray-400 font-medium" id="amount-symbol">BTC</span>
+
+                <div class="space-y-3">
+                    <div class="relative">
+                        <input type="text" class="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm" placeholder="Price" value="96535.00">
+                    </div>
+                    <div class="relative">
+                        <input type="text" class="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm" placeholder="Amount">
+                    </div>
                 </div>
-            </div>
 
-            <!-- Percentages -->
-            <div class="flex justify-between gap-2 mt-3 mb-6">
-                <button class="flex-1 py-1 bg-gray-100 rounded text-xs text-gray-500 hover:bg-gray-200" onclick="setPercentage(25)">25%</button>
-                <button class="flex-1 py-1 bg-gray-100 rounded text-xs text-gray-500 hover:bg-gray-200" onclick="setPercentage(50)">50%</button>
-                <button class="flex-1 py-1 bg-gray-100 rounded text-xs text-gray-500 hover:bg-gray-200" onclick="setPercentage(75)">75%</button>
-                <button class="flex-1 py-1 bg-gray-100 rounded text-xs text-gray-500 hover:bg-gray-200" onclick="setPercentage(100)">100%</button>
-            </div>
-
-            <!-- Balance -->
-            <div class="flex justify-between text-xs text-gray-500 mb-4 font-medium">
-                <span>Avail</span>
-                <span id="available-balance">0.00 USDT</span>
-            </div>
-
-            <!-- Action Button -->
-            <button id="action-btn" class="w-full py-3.5 rounded-lg bg-green-500 text-white font-bold shadow-lg shadow-green-500/30 active:scale-95 transition-transform" onclick="executeTrade()">
-                Buy BTC
-            </button>
-        </div>
-    </div>
-
-    <!-- Coin Selection Modal -->
-    <div id="coinModal" class="modal-overlay" onclick="closeCoinModal(event)">
-        <div class="modal-content">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold">Select Market</h3>
-                <i class="fa-solid fa-xmark text-gray-500 text-xl cursor-pointer" onclick="document.getElementById('coinModal').style.display='none'"></i>
-            </div>
-            
-            <!-- Search Bar -->
-            <div class="mb-4">
-                <div class="flex items-center bg-gray-100 rounded-lg px-3 py-2">
-                    <i class="fa-solid fa-magnifying-glass text-gray-400 mr-2"></i>
-                    <input type="text" placeholder="Search coin" class="bg-transparent border-none outline-none text-sm w-full text-gray-700" oninput="filterModal(event)">
+                <div class="flex justify-between gap-1 mt-3 mb-4">
+                    <button class="flex-1 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] text-gray-500">25%</button>
+                    <button class="flex-1 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] text-gray-500">50%</button>
+                    <button class="flex-1 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] text-gray-500">75%</button>
+                    <button class="flex-1 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] text-gray-500">100%</button>
                 </div>
-            </div>
 
-            <!-- Categories -->
-            <div class="flex gap-4 border-b border-gray-100 mb-4 overflow-x-auto pb-2">
-                <button class="text-sm font-semibold text-gray-800 border-b-2 border-black pb-1 whitespace-nowrap" onclick="renderModalList('crypto', this)">Crypto</button>
-                <button class="text-sm font-semibold text-gray-400 pb-1 whitespace-nowrap" onclick="renderModalList('stocks', this)">Stocks</button>
-                <button class="text-sm font-semibold text-gray-400 pb-1 whitespace-nowrap" onclick="renderModalList('forex', this)">Forex</button>
-                <button class="text-sm font-semibold text-gray-400 pb-1 whitespace-nowrap" onclick="renderModalList('gold', this)">Gold</button>
-            </div>
+                <div class="flex justify-between text-xs text-gray-400 mb-3">
+                    <span>Avail</span>
+                    <span>0.00 USDT</span>
+                </div>
 
-            <!-- List -->
-            <div id="modal-list" class="space-y-4">
-                <!-- Populated by JS -->
+                <button class="w-full py-3 rounded bg-green-500 text-white font-bold text-sm">Buy BTC</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Success Modal -->
-    <div id="successModal" class="modal-overlay" style="align-items: center;">
-        <div class="bg-white rounded-2xl p-6 w-80 text-center shadow-2xl transform transition-all scale-100">
-            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fa-solid fa-check text-2xl text-green-500"></i>
-            </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-2">Order Successful</h3>
-            <p class="text-gray-500 text-sm mb-6">Your trade has been executed successfully.</p>
-            <button onclick="document.getElementById('successModal').style.display='none'" class="w-full py-3 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
-                Done
-            </button>
         </div>
     </div>
 
@@ -297,305 +192,5 @@
         </a>
     </div>
 
-    <script>
-        // --- State ---
-        let currentTab = 'buy'; // 'buy' or 'sell'
-        let selectedPair = 'BTC/USDT';
-        let currentPrice = 95245.30;
-        let priceChangePercent = -0.92;
-        let userBalance = 0; // Will fetch
-        let activeModalTab = 'crypto';
-        let searchTerm = '';
-        
-        // Mock Data for Coin Selector
-        const assetLists = {
-            crypto: ['BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'SOL/USDT', 'XRP/USDT', 'ADA/USDT', 'DOGE/USDT', 'TRX/USDT', 'LTC/USDT'],
-            stocks: ['AAPL/USD', 'TSLA/USD', 'NVDA/USD', 'MSFT/USD', 'AMZN/USD', 'GOOGL/USD', 'META/USD', 'NFLX/USD'],
-            forex: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD', 'USD/CHF', 'NZD/USD'],
-            gold: ['XAU/USD', 'XAG/USD']
-        };
-
-        // --- Initialization ---
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Check URL params for symbol
-            const urlParams = new URLSearchParams(window.location.search);
-            const paramSymbol = urlParams.get('symbol');
-            if (paramSymbol) {
-                // Try to match symbol to asset lists
-                let found = false;
-                // Simple cleanup if needed
-                let cleanSymbol = paramSymbol;
-                if (!cleanSymbol.includes('/') && cleanSymbol.endsWith('USDT')) {
-                    cleanSymbol = cleanSymbol.replace('USDT', '/USDT');
-                } else if (!cleanSymbol.includes('/') && (cleanSymbol.endsWith('USD'))) {
-                     cleanSymbol = cleanSymbol.replace('USD', '/USD');
-                }
-
-                selectedPair = cleanSymbol;
-                document.getElementById('pairName').textContent = selectedPair;
-            }
-
-            await fetchBalance();
-            startDataStream();
-            renderModalList('crypto'); // Pre-load modal
-        });
-
-        // --- Data Fetching ---
-        async function fetchBalance() {
-            try {
-                // Simulate fetch or use local storage if no backend auth
-                // For demo, we'll assume a mock balance or fetch from an endpoint if available
-                // In a real app: const res = await fetch('/api/user/balance');
-                userBalance = 10000.00; // Mock balance
-                updateBalanceDisplay();
-            } catch (e) {
-                console.error("Balance fetch error:", e);
-                userBalance = 0;
-            }
-        }
-
-        function updateBalanceDisplay() {
-            const el = document.getElementById('available-balance');
-            const symbol = selectedPair.split('/')[1] || 'USDT';
-            
-            if (currentTab === 'buy') {
-                el.textContent = `${userBalance.toFixed(2)} ${symbol}`;
-            } else {
-                // For sell, ideally show the coin balance (e.g., BTC)
-                // For simplicity in this demo, we'll just show the quote currency balance or mock a coin balance
-                // Let's mock a coin balance for "Sell"
-                const coinSymbol = selectedPair.split('/')[0];
-                const mockCoinBalance = 0.5; // Mock
-                el.textContent = `${mockCoinBalance.toFixed(4)} ${coinSymbol}`;
-            }
-        }
-
-        async function fetchPrice() {
-            try {
-                // Use the backend proxy to avoid CORS
-                const response = await fetch(window.location.origin + '/api/markets');
-                const data = await response.json();
-                
-                // Map the data to find our selected pair
-                // The API returns raw symbols like BTCUSDT
-                const rawSymbol = selectedPair.replace('/', '');
-                
-                let price = 0;
-                
-                // Try exact match first
-                if (data[rawSymbol]) {
-                    price = parseFloat(data[rawSymbol]);
-                } else {
-                    // Fallback logic if symbol format differs
-                    const coin = selectedPair.split('/')[0];
-                    if (data[coin]) price = parseFloat(data[coin]); // e.g. from simplistic mock
-                    else if (data[coin + 'USDT']) price = parseFloat(data[coin + 'USDT']);
-                }
-
-                if (price > 0) {
-                    currentPrice = price;
-                    // Simulate percentage change for demo since API might not return it
-                    priceChangePercent = (Math.random() * 4) - 2; 
-                    updatePriceUI();
-                    renderOrderBook(); // Update order book with new base price
-                }
-
-            } catch (e) {
-                console.error("Price fetch error:", e);
-            }
-        }
-
-        function startDataStream() {
-            fetchPrice();
-            setInterval(fetchPrice, 3000); // Update every 3 seconds
-        }
-
-        function updatePriceUI() {
-            const el = document.getElementById('currentPriceDisplay');
-            const elUsd = document.getElementById('currentPriceUsd');
-            
-            const changeClass = priceChangePercent >= 0 ? 'text-green-custom' : 'text-red-custom';
-            const sign = priceChangePercent >= 0 ? '+' : '';
-            
-            // Update main price
-            el.className = `text-2xl font-bold ${changeClass}`;
-            el.textContent = currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
-            
-            // Update USD approx and percent
-            elUsd.className = `text-xs font-bold ${changeClass}`;
-            elUsd.innerHTML = `≈ $${currentPrice.toFixed(2)} <span class="ml-1">${sign}${priceChangePercent.toFixed(2)}%</span>`;
-
-            // Update Header Tag
-            const headerTag = document.querySelector('.bg-green-100'); // This selector is a bit weak, let's target specific if possible
-            if(headerTag) {
-                headerTag.className = `text-xs px-2 py-0.5 rounded ${priceChangePercent >= 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`;
-                headerTag.textContent = `${sign}${priceChangePercent.toFixed(2)}%`;
-            }
-
-            // Update Input Placeholder if empty
-            const priceInput = document.getElementById('priceInput');
-            if (!priceInput.value) {
-                priceInput.placeholder = currentPrice.toFixed(2);
-            }
-        }
-
-        // --- Order Book Logic ---
-        function renderOrderBook() {
-            const asksContainer = document.getElementById('asks-container');
-            const bidsContainer = document.getElementById('bids-container');
-
-            // Generate mock order book data around current price
-            const asks = [];
-            const bids = [];
-            
-            for (let i = 0; i < 5; i++) {
-                asks.push({
-                    price: currentPrice + (currentPrice * (0.001 * (i + 1))),
-                    amount: Math.random() * 2
-                });
-                bids.push({
-                    price: currentPrice - (currentPrice * (0.001 * (i + 1))),
-                    amount: Math.random() * 2
-                });
-            }
-            asks.reverse(); // Lowest ask at bottom
-
-            // Helper to create row
-            const createRow = (item, type) => {
-                const width = Math.min(item.amount * 40, 100); // Visual bar width
-                const colorClass = type === 'ask' ? 'text-red-custom' : 'text-green-custom';
-                const bgClass = type === 'ask' ? 'order-book-bg-red' : 'order-book-bg-green';
-                
-                return `
-                    <div class="order-row" onclick="setPrice(${item.price})">
-                        <div class="${bgClass}" style="width: ${width}%"></div>
-                        <div class="order-data">
-                            <span class="${colorClass}">${item.price.toFixed(2)}</span>
-                            <span class="text-gray-500">${item.amount.toFixed(4)}</span>
-                        </div>
-                    </div>
-                `;
-            };
-
-            // Update DOM
-            asksContainer.innerHTML = asks.map(item => createRow(item, 'ask')).join('');
-            bidsContainer.innerHTML = bids.map(item => createRow(item, 'bid')).join('');
-        }
-
-        // --- Interaction Logic ---
-        function switchTab(tab) {
-            currentTab = tab;
-            const btnBuy = document.getElementById('btn-buy');
-            const btnSell = document.getElementById('btn-sell');
-            const actionBtn = document.getElementById('action-btn');
-            const amountSymbol = document.getElementById('amount-symbol');
-            
-            if (tab === 'buy') {
-                btnBuy.className = "flex-1 py-2 rounded-md text-sm font-semibold bg-green-500 text-white shadow-sm transition-all";
-                btnSell.className = "flex-1 py-2 rounded-md text-sm font-semibold text-gray-500 transition-all";
-                actionBtn.className = "w-full py-3.5 rounded-lg bg-green-500 text-white font-bold shadow-lg shadow-green-500/30 active:scale-95 transition-transform";
-                actionBtn.textContent = `Buy ${selectedPair.split('/')[0]}`;
-                // Input styling focus
-                document.getElementById('priceInput').classList.replace('focus:border-red-500', 'focus:border-green-500');
-                document.getElementById('amountInput').classList.replace('focus:border-red-500', 'focus:border-green-500');
-            } else {
-                btnBuy.className = "flex-1 py-2 rounded-md text-sm font-semibold text-gray-500 transition-all";
-                btnSell.className = "flex-1 py-2 rounded-md text-sm font-semibold bg-red-500 text-white shadow-sm transition-all";
-                actionBtn.className = "w-full py-3.5 rounded-lg bg-red-500 text-white font-bold shadow-lg shadow-red-500/30 active:scale-95 transition-transform";
-                actionBtn.textContent = `Sell ${selectedPair.split('/')[0]}`;
-                // Input styling focus
-                document.getElementById('priceInput').classList.replace('focus:border-green-500', 'focus:border-red-500');
-                document.getElementById('amountInput').classList.replace('focus:border-green-500', 'focus:border-red-500');
-            }
-            updateBalanceDisplay();
-        }
-
-        function setPrice(price) {
-            document.getElementById('priceInput').value = price.toFixed(2);
-        }
-
-        function setPercentage(percent) {
-            // Logic to calculate amount based on balance and current price
-            if (currentTab === 'buy') {
-                // Calculate max buyable amount
-                const maxUsd = userBalance;
-                const price = parseFloat(document.getElementById('priceInput').value) || currentPrice;
-                const amount = (maxUsd * (percent / 100)) / price;
-                document.getElementById('amountInput').value = amount.toFixed(6);
-            } else {
-                // Calculate max sellable amount (mock coin balance)
-                const mockCoinBalance = 0.5; // From fetchBalance mock
-                const amount = mockCoinBalance * (percent / 100);
-                document.getElementById('amountInput').value = amount.toFixed(6);
-            }
-        }
-
-        function executeTrade() {
-            // Show success modal for demo
-            document.getElementById('successModal').style.display = 'flex';
-        }
-
-        // --- Modal Logic ---
-        function openCoinModal() {
-            document.getElementById('coinModal').style.display = 'flex';
-        }
-
-        function closeCoinModal(e) {
-            if (e.target.id === 'coinModal') {
-                document.getElementById('coinModal').style.display = 'none';
-            }
-        }
-
-        function filterModal(e) {
-            searchTerm = e.target.value.toLowerCase();
-            renderModalList(activeModalTab);
-        }
-
-        function renderModalList(category, btnElement) {
-            activeModalTab = category;
-            
-            // Update Tab UI
-            if (btnElement) {
-                const tabs = btnElement.parentElement.children;
-                for (let tab of tabs) {
-                    tab.className = "text-sm font-semibold text-gray-400 pb-1 whitespace-nowrap";
-                    tab.style.borderBottom = "none";
-                }
-                btnElement.className = "text-sm font-semibold text-gray-800 border-b-2 border-black pb-1 whitespace-nowrap";
-            }
-
-            // Filter and Render List
-            const listContainer = document.getElementById('modal-list');
-            const items = assetLists[category] || [];
-            
-            const filteredItems = items.filter(item => item.toLowerCase().includes(searchTerm));
-            
-            listContainer.innerHTML = filteredItems.map(item => `
-                <div class="flex justify-between items-center py-2 border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 px-2 rounded" onclick="selectCoin('${item}')">
-                    <div class="flex items-center gap-3">
-                        <div class="font-bold text-gray-800">${item}</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-sm font-medium text-gray-800">$${(Math.random() * 50000 + 100).toFixed(2)}</div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function selectCoin(pair) {
-            selectedPair = pair;
-            document.getElementById('pairName').textContent = pair;
-            document.getElementById('amount-symbol').textContent = pair.split('/')[0];
-            
-            // Reset state
-            currentPrice = 0; 
-            document.getElementById('coinModal').style.display = 'none';
-            
-            // Refresh data
-            fetchPrice();
-            updateBalanceDisplay();
-            switchTab(currentTab); // refresh button text
-        }
-    </script>
 </body>
 </html>
