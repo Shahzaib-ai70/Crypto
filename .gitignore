@@ -1,0 +1,5 @@
+node_modules/
+*.log
+*.zip
+*.backup
+server/data/db.sqlite
