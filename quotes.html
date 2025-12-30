@@ -225,24 +225,70 @@
             return window.location.origin;
         }
 
+        const TARGET_SYMBOLS = ["BTCUSDT","ETHUSDT","BNBUSDT","XRPUSDT","SOLUSDT","ADAUSDT","DOGEUSDT","TRXUSDT","LTCUSDT","DOTUSDT","LINKUSDT","SHIBUSDT","AVAXUSDT","BCHUSDT","UNIUSDT","MATICUSDT"];
+        
+        // Initial state with defaults
+        let cryptoData = {
+            BTCUSDT: { symbol: "BTCUSDT", lastPrice: 96500.00, priceChangePercent: 2.50 },
+            ETHUSDT: { symbol: "ETHUSDT", lastPrice: 3650.00, priceChangePercent: -1.20 },
+            BNBUSDT: { symbol: "BNBUSDT", lastPrice: 620.15, priceChangePercent: -0.50 },
+            XRPUSDT: { symbol: "XRPUSDT", lastPrice: 2.45, priceChangePercent: 5.40 },
+            SOLUSDT: { symbol: "SOLUSDT", lastPrice: 195.20, priceChangePercent: 0.80 },
+            ADAUSDT: { symbol: "ADAUSDT", lastPrice: 1.20, priceChangePercent: 1.50 },
+            DOGEUSDT: { symbol: "DOGEUSDT", lastPrice: 0.12, priceChangePercent: 3.20 },
+            TRXUSDT: { symbol: "TRXUSDT", lastPrice: 0.15, priceChangePercent: 1.10 },
+            LTCUSDT: { symbol: "LTCUSDT", lastPrice: 75.20, priceChangePercent: -0.80 },
+            DOTUSDT: { symbol: "DOTUSDT", lastPrice: 7.50, priceChangePercent: 2.10 },
+            LINKUSDT: { symbol: "LINKUSDT", lastPrice: 15.30, priceChangePercent: 0.90 },
+            SHIBUSDT: { symbol: "SHIBUSDT", lastPrice: 0.000025, priceChangePercent: 4.50 },
+            AVAXUSDT: { symbol: "AVAXUSDT", lastPrice: 35.40, priceChangePercent: -1.50 },
+            BCHUSDT: { symbol: "BCHUSDT", lastPrice: 320.10, priceChangePercent: 1.80 },
+            UNIUSDT: { symbol: "UNIUSDT", lastPrice: 8.90, priceChangePercent: 2.20 },
+            MATICUSDT: { symbol: "MATICUSDT", lastPrice: 0.85, priceChangePercent: -0.50 }
+        };
+
+        function simulateTicks() {
+            if(currentTab !== 'crypto') return;
+            
+            TARGET_SYMBOLS.forEach(sym => {
+                if(!cryptoData[sym]) return;
+                
+                // Random walk logic
+                const price = parseFloat(cryptoData[sym].lastPrice);
+                const change = parseFloat(cryptoData[sym].priceChangePercent);
+                
+                if(Math.random() > 0.7) {
+                    const move = price * 0.0005 * (Math.random() - 0.5); 
+                    const newPrice = price + move;
+                    cryptoData[sym].lastPrice = newPrice;
+                    cryptoData[sym].priceChangePercent = change + (Math.random() - 0.5) * 0.02;
+                    
+                    prices.set(sym, cryptoData[sym]);
+                } else {
+                    // Ensure map is populated
+                    prices.set(sym, cryptoData[sym]);
+                }
+            });
+            renderList();
+        }
+
         async function fetchPrices(category) {
             if (category === 'crypto') {
-                const symbols = lists.crypto;
                 try {
-                    // Fetch from Binance API
-                    const res = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+                    // Fetch specific symbols for speed
+                    const symbolsParam = JSON.stringify(TARGET_SYMBOLS);
+                    const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`);
                     if (!res.ok) throw new Error("binance_failed");
                     const allData = await res.json();
                     
                     allData.forEach(d => {
-                        if(symbols.includes(d.symbol)) {
+                        if(TARGET_SYMBOLS.includes(d.symbol)) {
+                            cryptoData[d.symbol] = d;
                             prices.set(d.symbol, d);
                         }
                     });
                 } catch (e) {
-                    console.log("Fetch failed", e);
-                    // Fallback to mock logic if API fails
-                    // (Optional: Implement robust fallback here if needed)
+                    console.log("Fetch failed, using simulation", e);
                 }
             } else {
                 updateMockData(category);
@@ -250,11 +296,12 @@
         }
 
         function renderList() {
-            const symbols = lists[currentTab];
+            // Logic handled below but updated to use TARGET_SYMBOLS for crypto
+            const symbols = currentTab === 'crypto' ? TARGET_SYMBOLS : lists[currentTab];
             const container = document.getElementById('quotesList');
             const html = symbols.map(s => {
                 const meta = META[s] || {sym: s, bg:"#999", text:s[0]};
-                const data = prices.get(s) || {};
+                const data = prices.get(s) || cryptoData[s] || {};
                 let last = parseFloat(data.lastPrice);
                 if (isNaN(last)) last = 0;
                 
@@ -273,6 +320,9 @@
                     if (last < 1) lastStr = last.toFixed(4);
                     else if (last < 10) lastStr = last.toFixed(3);
                     else lastStr = last.toFixed(2);
+                    
+                    // For SHIB or small coins
+                    if(last < 0.001) lastStr = last.toFixed(6);
                 }
 
                 const volStr = vol ? vol.toLocaleString(undefined,{maximumFractionDigits:0}) : "0";
@@ -313,8 +363,14 @@
         }
 
         async function refresh() {
-            await fetchPrices(currentTab);
-            renderList();
+            if(currentTab === 'crypto') {
+                simulateTicks(); // Run simulation every tick
+                // Real fetch is handled by interval separately or here sparsely
+                // We'll rely on the main interval for real fetch
+            } else {
+                fetchPrices(currentTab);
+                renderList();
+            }
         }
 
         tabs.crypto.addEventListener("click", () => setActive("crypto"));
@@ -323,7 +379,20 @@
         tabs.gold.addEventListener("click", () => setActive("gold"));
 
         setActive("crypto");
-        setInterval(refresh, 2000); // 2 seconds refresh for "live" feel
+        
+        // Setup intervals
+        setInterval(() => {
+            if(currentTab === 'crypto') refresh();
+            else refresh();
+        }, 1000); // 1s simulation/tick
+
+        // Real data fetch loop for crypto (slower)
+        setInterval(() => {
+            if(currentTab === 'crypto') fetchPrices('crypto');
+        }, 5000);
+        
+        // Initial fetch
+        fetchPrices('crypto');
     </script>
 </body>
 </html>
