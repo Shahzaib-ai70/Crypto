@@ -591,6 +591,9 @@
             
             if(ws && ws.readyState === WebSocket.OPEN) return;
 
+            // Immediate initial fetch to prevent "0" while WS connects
+            fetchPricesRest();
+
             // Use Combined Streams for reliability (port 443)
             const streams = TARGET_SYMBOLS.map(s => s.toLowerCase() + '@ticker').join('/');
             ws = new WebSocket(`wss://stream.binance.com/stream?streams=${streams}`);
