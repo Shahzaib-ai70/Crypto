@@ -548,24 +548,24 @@
 
         const TARGET_SYMBOLS = ["BTCUSDT","ETHUSDT","BNBUSDT","XRPUSDT","SOLUSDT","ADAUSDT","DOGEUSDT","TRXUSDT","LTCUSDT","DOTUSDT","LINKUSDT","SHIBUSDT","AVAXUSDT","BCHUSDT","UNIUSDT","MATICUSDT"];
         
-        // Initial state with some defaults in case fetch fails immediately
+        // Initial state - Reset to 0/Loading to avoid fake static data
         let marketData = {
-            BTCUSDT: { symbol: "BTCUSDT", lastPrice: 96500.00, priceChangePercent: 2.50 },
-            ETHUSDT: { symbol: "ETHUSDT", lastPrice: 3650.00, priceChangePercent: -1.20 },
-            BNBUSDT: { symbol: "BNBUSDT", lastPrice: 620.15, priceChangePercent: -0.50 },
-            XRPUSDT: { symbol: "XRPUSDT", lastPrice: 2.45, priceChangePercent: 5.40 },
-            SOLUSDT: { symbol: "SOLUSDT", lastPrice: 195.20, priceChangePercent: 0.80 },
-            ADAUSDT: { symbol: "ADAUSDT", lastPrice: 1.20, priceChangePercent: 1.50 },
-            DOGEUSDT: { symbol: "DOGEUSDT", lastPrice: 0.12, priceChangePercent: 3.20 },
-            TRXUSDT: { symbol: "TRXUSDT", lastPrice: 0.15, priceChangePercent: 1.10 },
-            LTCUSDT: { symbol: "LTCUSDT", lastPrice: 75.20, priceChangePercent: -0.80 },
-            DOTUSDT: { symbol: "DOTUSDT", lastPrice: 7.50, priceChangePercent: 2.10 },
-            LINKUSDT: { symbol: "LINKUSDT", lastPrice: 15.30, priceChangePercent: 0.90 },
-            SHIBUSDT: { symbol: "SHIBUSDT", lastPrice: 0.000025, priceChangePercent: 4.50 },
-            AVAXUSDT: { symbol: "AVAXUSDT", lastPrice: 35.40, priceChangePercent: -1.50 },
-            BCHUSDT: { symbol: "BCHUSDT", lastPrice: 320.10, priceChangePercent: 1.80 },
-            UNIUSDT: { symbol: "UNIUSDT", lastPrice: 8.90, priceChangePercent: 2.20 },
-            MATICUSDT: { symbol: "MATICUSDT", lastPrice: 0.85, priceChangePercent: -0.50 }
+            BTCUSDT: { symbol: "BTCUSDT", lastPrice: 0, priceChangePercent: 0 },
+            ETHUSDT: { symbol: "ETHUSDT", lastPrice: 0, priceChangePercent: 0 },
+            BNBUSDT: { symbol: "BNBUSDT", lastPrice: 0, priceChangePercent: 0 },
+            XRPUSDT: { symbol: "XRPUSDT", lastPrice: 0, priceChangePercent: 0 },
+            SOLUSDT: { symbol: "SOLUSDT", lastPrice: 0, priceChangePercent: 0 },
+            ADAUSDT: { symbol: "ADAUSDT", lastPrice: 0, priceChangePercent: 0 },
+            DOGEUSDT: { symbol: "DOGEUSDT", lastPrice: 0, priceChangePercent: 0 },
+            TRXUSDT: { symbol: "TRXUSDT", lastPrice: 0, priceChangePercent: 0 },
+            LTCUSDT: { symbol: "LTCUSDT", lastPrice: 0, priceChangePercent: 0 },
+            DOTUSDT: { symbol: "DOTUSDT", lastPrice: 0, priceChangePercent: 0 },
+            LINKUSDT: { symbol: "LINKUSDT", lastPrice: 0, priceChangePercent: 0 },
+            SHIBUSDT: { symbol: "SHIBUSDT", lastPrice: 0, priceChangePercent: 0 },
+            AVAXUSDT: { symbol: "AVAXUSDT", lastPrice: 0, priceChangePercent: 0 },
+            BCHUSDT: { symbol: "BCHUSDT", lastPrice: 0, priceChangePercent: 0 },
+            UNIUSDT: { symbol: "UNIUSDT", lastPrice: 0, priceChangePercent: 0 },
+            MATICUSDT: { symbol: "MATICUSDT", lastPrice: 0, priceChangePercent: 0 }
         };
 
         // WebSocket for Real-Time Data
@@ -575,13 +575,10 @@
             if(currentTab === 'crypto') {
                 initWebSocket();
             } else {
-                // Close WS if leaving crypto tab
                 if(ws) {
                     ws.close();
                     ws = null;
                 }
-                // For other tabs, we might fetch from REST or show placeholder
-                // Since this task is about Binance API check for crypto, we focus on that.
                 console.log("Switched to " + currentTab);
             }
         }
@@ -592,31 +589,25 @@
                 return;
             }
             
-            // If already connected, do nothing
             if(ws && ws.readyState === WebSocket.OPEN) return;
 
-            // Connect to Binance Stream (port 443 default for better firewall traversal)
-            ws = new WebSocket('wss://stream.binance.com/ws');
+            // Use Combined Streams for reliability (port 443)
+            const streams = TARGET_SYMBOLS.map(s => s.toLowerCase() + '@ticker').join('/');
+            ws = new WebSocket(`wss://stream.binance.com/stream?streams=${streams}`);
             
             ws.onopen = () => {
-                // Subscribe to all target symbols
-                const streams = TARGET_SYMBOLS.map(s => s.toLowerCase() + '@ticker');
-                ws.send(JSON.stringify({
-                    method: "SUBSCRIBE",
-                    params: streams,
-                    id: 1
-                }));
+                console.log("Connected to Binance Stream");
             };
 
             ws.onmessage = (event) => {
                 try {
                     const msg = JSON.parse(event.data);
+                    // msg format: { stream: "btcusdt@ticker", data: { ... } }
+                    const data = msg.data;
                     
-                    // Handle ticker update
-                    // Msg format: {e: "24hrTicker", s: "BTCUSDT", c: "lastPrice", P: "percentChange", ...}
-                    if(msg.e === '24hrTicker' && marketData[msg.s]) {
-                        marketData[msg.s].lastPrice = parseFloat(msg.c);
-                        marketData[msg.s].priceChangePercent = parseFloat(msg.P);
+                    if(data && data.e === '24hrTicker' && marketData[data.s]) {
+                        marketData[data.s].lastPrice = parseFloat(data.c);
+                        marketData[data.s].priceChangePercent = parseFloat(data.P);
                         
                         requestAnimationFrame(() => {
                             renderList(TARGET_SYMBOLS.map(s => marketData[s]).filter(Boolean));
@@ -627,12 +618,10 @@
 
             ws.onerror = (err) => {
                 console.error("WebSocket Error:", err);
-                // Fallback to REST if WS fails
                 fetchPricesRest();
             };
             
             ws.onclose = () => {
-                // Reconnect after 5s if connection lost
                 setTimeout(initWebSocket, 5000);
             };
         }

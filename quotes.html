@@ -227,24 +227,24 @@
 
         // Use lists.crypto as the source of truth
         
-        // Initial state with defaults
+        // Initial state - Reset to 0/Loading to avoid fake static data
         let cryptoData = {
-            BTCUSDT: { symbol: "BTCUSDT", lastPrice: 96500.00, priceChangePercent: 2.50 },
-            ETHUSDT: { symbol: "ETHUSDT", lastPrice: 3650.00, priceChangePercent: -1.20 },
-            BNBUSDT: { symbol: "BNBUSDT", lastPrice: 620.15, priceChangePercent: -0.50 },
-            XRPUSDT: { symbol: "XRPUSDT", lastPrice: 2.45, priceChangePercent: 5.40 },
-            SOLUSDT: { symbol: "SOLUSDT", lastPrice: 195.20, priceChangePercent: 0.80 },
-            ADAUSDT: { symbol: "ADAUSDT", lastPrice: 1.20, priceChangePercent: 1.50 },
-            DOGEUSDT: { symbol: "DOGEUSDT", lastPrice: 0.12, priceChangePercent: 3.20 },
-            TRXUSDT: { symbol: "TRXUSDT", lastPrice: 0.15, priceChangePercent: 1.10 },
-            LTCUSDT: { symbol: "LTCUSDT", lastPrice: 75.20, priceChangePercent: -0.80 },
-            DOTUSDT: { symbol: "DOTUSDT", lastPrice: 7.50, priceChangePercent: 2.10 },
-            LINKUSDT: { symbol: "LINKUSDT", lastPrice: 15.30, priceChangePercent: 0.90 },
-            SHIBUSDT: { symbol: "SHIBUSDT", lastPrice: 0.000025, priceChangePercent: 4.50 },
-            AVAXUSDT: { symbol: "AVAXUSDT", lastPrice: 35.40, priceChangePercent: -1.50 },
-            BCHUSDT: { symbol: "BCHUSDT", lastPrice: 320.10, priceChangePercent: 1.80 },
-            UNIUSDT: { symbol: "UNIUSDT", lastPrice: 8.90, priceChangePercent: 2.20 },
-            MATICUSDT: { symbol: "MATICUSDT", lastPrice: 0.85, priceChangePercent: -0.50 }
+            BTCUSDT: { symbol: "BTCUSDT", lastPrice: 0, priceChangePercent: 0 },
+            ETHUSDT: { symbol: "ETHUSDT", lastPrice: 0, priceChangePercent: 0 },
+            BNBUSDT: { symbol: "BNBUSDT", lastPrice: 0, priceChangePercent: 0 },
+            XRPUSDT: { symbol: "XRPUSDT", lastPrice: 0, priceChangePercent: 0 },
+            SOLUSDT: { symbol: "SOLUSDT", lastPrice: 0, priceChangePercent: 0 },
+            ADAUSDT: { symbol: "ADAUSDT", lastPrice: 0, priceChangePercent: 0 },
+            DOGEUSDT: { symbol: "DOGEUSDT", lastPrice: 0, priceChangePercent: 0 },
+            TRXUSDT: { symbol: "TRXUSDT", lastPrice: 0, priceChangePercent: 0 },
+            LTCUSDT: { symbol: "LTCUSDT", lastPrice: 0, priceChangePercent: 0 },
+            DOTUSDT: { symbol: "DOTUSDT", lastPrice: 0, priceChangePercent: 0 },
+            LINKUSDT: { symbol: "LINKUSDT", lastPrice: 0, priceChangePercent: 0 },
+            SHIBUSDT: { symbol: "SHIBUSDT", lastPrice: 0, priceChangePercent: 0 },
+            AVAXUSDT: { symbol: "AVAXUSDT", lastPrice: 0, priceChangePercent: 0 },
+            BCHUSDT: { symbol: "BCHUSDT", lastPrice: 0, priceChangePercent: 0 },
+            UNIUSDT: { symbol: "UNIUSDT", lastPrice: 0, priceChangePercent: 0 },
+            MATICUSDT: { symbol: "MATICUSDT", lastPrice: 0, priceChangePercent: 0 }
         };
 
         // WebSocket for Crypto
@@ -256,28 +256,26 @@
             }
             if(ws && ws.readyState === WebSocket.OPEN) return;
 
-            // Use wss://stream.binance.com:9443/ws or wss://stream.binance.com/ws
-            // Try port 443 (standard HTTPS) if 9443 is blocked
-            ws = new WebSocket('wss://stream.binance.com/ws');
+            // Use Combined Streams for reliability (port 443)
+            const streams = lists.crypto.map(s => s.toLowerCase() + '@ticker').join('/');
+            ws = new WebSocket(`wss://stream.binance.com/stream?streams=${streams}`);
             
             ws.onopen = () => {
-                const streams = lists.crypto.map(s => s.toLowerCase() + '@ticker');
-                ws.send(JSON.stringify({
-                    method: "SUBSCRIBE",
-                    params: streams,
-                    id: 1
-                }));
+                console.log("Connected to Binance Stream (Quotes)");
             };
             ws.onmessage = (event) => {
                 try {
                     const msg = JSON.parse(event.data);
-                    if(msg.e === '24hrTicker' && lists.crypto.includes(msg.s)) {
-                        if(!cryptoData[msg.s]) cryptoData[msg.s] = {};
-                        cryptoData[msg.s].lastPrice = parseFloat(msg.c);
-                        cryptoData[msg.s].priceChangePercent = parseFloat(msg.P);
-                        cryptoData[msg.s].volume = parseFloat(msg.v); 
+                    // msg format: { stream: "btcusdt@ticker", data: { ... } }
+                    const data = msg.data;
+
+                    if(data && data.e === '24hrTicker' && lists.crypto.includes(data.s)) {
+                        if(!cryptoData[data.s]) cryptoData[data.s] = {};
+                        cryptoData[data.s].lastPrice = parseFloat(data.c);
+                        cryptoData[data.s].priceChangePercent = parseFloat(data.P);
+                        cryptoData[data.s].volume = parseFloat(data.v); 
                         
-                        prices.set(msg.s, cryptoData[msg.s]);
+                        prices.set(data.s, cryptoData[data.s]);
                         
                         requestAnimationFrame(renderList);
                     }
