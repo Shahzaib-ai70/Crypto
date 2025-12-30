@@ -207,7 +207,7 @@
             const u = localStorage.getItem('authUser');
             if(!u) return; // Or redirect to login
             try {
-                const res = await fetch('/api/me', { headers: { 'x-user': u } });
+                const res = await fetch(window.location.origin + '/api/me', { headers: { 'x-user': u } });
                 const data = await res.json();
                 if(data && data.balance !== undefined) {
                     window.currentUserBalance = parseFloat(data.balance);
@@ -266,7 +266,7 @@
             }
 
             try {
-                const res = await fetch('/api/withdraw', {
+                const res = await fetch(window.location.origin + '/api/withdraw', {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',

@@ -695,7 +695,7 @@
         
         if (currentCategory === 'crypto') {
             try {
-                const res = await fetch(`/api/klines?symbol=${symbol}&interval=1m&limit=100`);
+                const res = await fetch(window.location.origin + `/api/klines?symbol=${symbol}&interval=1m&limit=100`);
                 const data = await res.json();
                 if (Array.isArray(data)) {
                     const candles = data.map(d => ({
@@ -776,7 +776,7 @@
         
         if (currentCategory === 'crypto') {
             try {
-                const res = await fetch(`/api/markets?symbols=${encodeURIComponent(JSON.stringify([symbol]))}`);
+                const res = await fetch(window.location.origin + `/api/markets?symbols=${encodeURIComponent(JSON.stringify([symbol]))}`);
                 const data = await res.json();
                 if (Array.isArray(data) && data.length > 0) {
                     const t = data[0];
@@ -840,7 +840,7 @@
         const u = localStorage.getItem('authUser');
         if (!u) return;
         try {
-            const res = await fetch('/api/me', { headers: { 'x-user': u } });
+            const res = await fetch(window.location.origin + '/api/me', { headers: { 'x-user': u } });
             const data = await res.json();
             if (data && data.balance !== undefined) {
                 currentUserBalance = parseFloat(data.balance);
@@ -877,7 +877,7 @@
 
     async function loadUserSettings() {
         try {
-            const res = await fetch('/api/user/settings');
+            const res = await fetch(window.location.origin + '/api/user/settings');
             if (res.ok) {
                 const data = await res.json();
                 minTradeAmount = data.min_trade_amount || 10;
@@ -1035,7 +1035,7 @@
         const symbol = selectedPair.replace('/', '');
         
         try {
-            const res = await fetch('/api/trade', {
+            const res = await fetch(window.location.origin + '/api/trade', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

@@ -518,7 +518,7 @@
         (function(){
             const u = localStorage.getItem('authUser');
             if(u) {
-                fetch('/api/me', { headers: { 'x-user': u } })
+                fetch(window.location.origin + '/api/me', { headers: { 'x-user': u } })
                 .then(r=>r.json())
                 .then(d=>{
                     if(d && d.balance !== undefined) {
@@ -589,7 +589,7 @@
             userNameEl.textContent = u ? u : 'Guest';
             menuEl.classList.remove('hidden');
             if(u) {
-                fetch('/api/me', { headers: { 'x-user': u } })
+                fetch(window.location.origin + '/api/me', { headers: { 'x-user': u } })
                 .then(r=>r.json())
                 .then(d=>{
                     if(d && d.username) {
@@ -600,7 +600,7 @@
                     }
                 })
                 .catch(console.error);
-                fetch('/api/verification/status', { headers: { 'x-user': u } })
+                fetch(window.location.origin + '/api/verification/status', { headers: { 'x-user': u } })
                 .then(r=>r.json())
                 .then(s=>{
                     primaryState = s.primary || null;
@@ -614,7 +614,7 @@
             menuEl.classList.add('hidden');
         });
         logoutBtn?.addEventListener('click', function () {
-             fetch('/api/logout', { method: 'POST' })
+             fetch(window.location.origin + '/api/logout', { method: 'POST' })
              .finally(() => {
                  localStorage.removeItem('authUser'); 
                  window.location.href='login.html'; 
@@ -712,7 +712,7 @@
             const document_number = document.getElementById('piDocNumber').value.trim();
             if(!first_name || !last_name || !document_type || !document_number) { alert('Fill all fields'); return; }
             try {
-              const r = await fetch('http://localhost:3001/api/verification/primary', {
+              const r = await fetch(window.location.origin + '/api/verification/primary', {
                  method: 'POST',
                  headers: { 'Content-Type': 'application/json', 'x-user': u },
                  body: JSON.stringify({ first_name, last_name, document_type, document_number })
@@ -743,7 +743,7 @@
             fd.append('back', back);
             fd.append('selfie', selfie);
             try {
-              const r = await fetch('http://localhost:3001/api/verification/advanced', {
+              const r = await fetch(window.location.origin + '/api/verification/advanced', {
                  method: 'POST',
                  headers: { 'x-user': u },
                  body: fd
@@ -884,7 +884,7 @@
                 const symbols = lists.crypto;
                 try {
                     const urlBackend = "/api/markets?symbols=" + encodeURIComponent(JSON.stringify(symbols));
-                    const res = await fetch(urlBackend);
+                    const res = await fetch(window.location.origin + urlBackend);
                     if (!res.ok) throw new Error("backend_failed");
                     const json = await res.json();
                     json.forEach(item => prices.set(item.symbol, item));

@@ -1,6 +1,6 @@
 
 async function test() {
-    const api = 'http://localhost:3001';
+    const api = 'http://localhost:3001'; // CHANGE THIS TO YOUR VPS URL IF NEEDED
     
     // 1. Create/Reset user
     const user = 'testuser_' + Date.now();

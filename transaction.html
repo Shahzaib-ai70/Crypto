@@ -296,7 +296,7 @@
             const quantity = document.getElementById('tradeAmount').value.trim();
             const type = 'Market';
             try {
-                const res = await fetch('/api/trade', {
+                const res = await fetch(window.location.origin + '/api/trade', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ symbol, side, quantity, type })

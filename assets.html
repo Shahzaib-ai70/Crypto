@@ -549,11 +549,11 @@
 
             try {
                 // 1. Fetch Prices
-                const priceRes = await fetch('/api/prices');
+                const priceRes = await fetch(window.location.origin + '/api/prices');
                 currentPrices = await priceRes.json();
 
                 // 2. Fetch User Data
-                const userRes = await fetch('/api/me', { headers: { 'x-user': u } });
+                const userRes = await fetch(window.location.origin + '/api/me', { headers: { 'x-user': u } });
                 const userData = await userRes.json();
 
                 if (userData) {
@@ -752,7 +752,7 @@
             btn.disabled = true;
 
             const u = localStorage.getItem('authUser');
-            fetch('/api/convert', {
+            fetch(window.location.origin + '/api/convert', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -790,7 +790,7 @@
             menuEl.classList.add('hidden');
         });
         logoutBtn?.addEventListener('click', function () {
-            fetch('/api/logout', { method: 'POST' })
+            fetch(window.location.origin + '/api/logout', { method: 'POST' })
             .finally(() => {
                 localStorage.removeItem('authUser');
                 window.location.href = 'login.html';
