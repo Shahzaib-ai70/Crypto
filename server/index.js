@@ -19,6 +19,19 @@ app.use(cors({ origin: "*"}));
 app.use(express.json());
 app.use(cookieParser());
 
+/* 
+   VPS DEPLOYMENT REQUIREMENT:
+   Node.js MUST NOT serve frontend files. 
+   NGINX serves frontend on port 80.
+   Node.js serves API on port 3001 (Internal).
+*/
+// const rootDir = path.join(__dirname, "..");
+// app.use(express.static(rootDir));
+// app.get("/", (req, res) => {
+//   res.sendFile(path.join(rootDir, "index.html"));
+// });
+app.use("/admin", express.static(path.join(__dirname, "admin")));
+
 app.get("/api/markets", async (req, res) => {
   try {
     const symbols = req.query.symbols
@@ -54,13 +67,6 @@ app.get("/api/markets", async (req, res) => {
     res.status(500).json({ error: "market_fetch_failed" });
   }
 });
-
-const rootDir = path.join(__dirname, "..");
-app.use(express.static(rootDir));
-app.get("/", (req, res) => {
-  res.sendFile(path.join(rootDir, "index.html"));
-});
-app.use("/admin", express.static(path.join(__dirname, "admin")));
 
 /* ================= DATABASE ================= */
 let db;
@@ -1053,7 +1059,7 @@ app.post("/api/withdraw/:id/status", async (req, res) => {
 });
 
 /* ================== START SERVER ================== */
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 initDb().then(() => {
   app.listen(PORT, () => {
     console.log(`Bitsafe API running on port ${PORT}`);

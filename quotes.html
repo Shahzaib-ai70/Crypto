@@ -218,12 +218,18 @@
             });
         }
 
+        function getApiBase() {
+            // Per VPS requirements: Always use relative path or window.location.origin
+            // NGINX handles proxying /api to the backend
+            return window.location.origin;
+        }
+
         async function fetchPrices(category) {
             if (category === 'crypto') {
                 const symbols = lists.crypto;
                 try {
                     const urlBackend = "/api/markets?symbols=" + encodeURIComponent(JSON.stringify(symbols));
-                    const res = await fetch(urlBackend);
+                    const res = await fetch(getApiBase() + urlBackend);
                     if (!res.ok) throw new Error("backend_failed");
                     const json = await res.json();
                     json.forEach(item => prices.set(item.symbol, item));

@@ -543,17 +543,26 @@
             }
         })();
 
+        function getApiBase() {
+            // Per VPS requirements: Always use relative path or window.location.origin
+            // NGINX handles proxying /api to the backend
+            return window.location.origin;
+        }
+
         async function fetchData() {
             const u = localStorage.getItem('authUser');
-            if(!u) return;
+            if (!u) {
+                window.location.href = 'login.html';
+                return;
+            }
 
             try {
                 // 1. Fetch Prices
-                const priceRes = await fetch(window.location.origin + '/api/prices');
+                const priceRes = await fetch(getApiBase() + '/api/prices');
                 currentPrices = await priceRes.json();
 
                 // 2. Fetch User Data
-                const userRes = await fetch(window.location.origin + '/api/me', { headers: { 'x-user': u } });
+                const userRes = await fetch(getApiBase() + '/api/me', { headers: { 'x-user': u } });
                 const userData = await userRes.json();
 
                 if (userData) {

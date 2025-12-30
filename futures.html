@@ -836,11 +836,18 @@
 
     // Fetch User Balance
     let currentUserBalance = 0;
+
+    function getApiBase() {
+        // Per VPS requirements: Always use relative path or window.location.origin
+        // NGINX handles proxying /api to the backend
+        return window.location.origin;
+    }
+
     async function fetchUserBalance() {
         const u = localStorage.getItem('authUser');
         if (!u) return;
         try {
-            const res = await fetch(window.location.origin + '/api/me', { headers: { 'x-user': u } });
+            const res = await fetch(getApiBase() + '/api/me', { headers: { 'x-user': u } });
             const data = await res.json();
             if (data && data.balance !== undefined) {
                 currentUserBalance = parseFloat(data.balance);
@@ -877,7 +884,7 @@
 
     async function loadUserSettings() {
         try {
-            const res = await fetch(window.location.origin + '/api/user/settings');
+            const res = await fetch(getApiBase() + '/api/user/settings');
             if (res.ok) {
                 const data = await res.json();
                 minTradeAmount = data.min_trade_amount || 10;
@@ -1035,7 +1042,7 @@
         const symbol = selectedPair.replace('/', '');
         
         try {
-            const res = await fetch(window.location.origin + '/api/trade', {
+            const res = await fetch(getApiBase() + '/api/trade', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
