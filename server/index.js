@@ -137,13 +137,22 @@ async function initDb() {
     } catch (e) {
       // Ignore if exists
     }
+
+    // Migration for invitation_code
+    try {
+        await db.run("ALTER TABLE users ADD COLUMN invitation_code TEXT");
+    } catch(e) {}
 }
 
 /* ================= AUTH APIs ================= */
 
 // REGISTER
 app.post("/api/register", async (req, res) => {
-  const { username, password } = req.body;
+  const { email, password, invitationCode } = req.body;
+
+  // We use 'email' as the 'username' in the database to maintain compatibility
+  // with existing tables that reference 'username'.
+  const username = email; 
 
   if (!username || !password) {
     return res.status(400).json({ error: "Missing fields" });
@@ -156,9 +165,9 @@ app.post("/api/register", async (req, res) => {
     // to match "like before" request, although it seems like a bug.
     // If you want to fix auth, uncomment the password field below.
     await db.run(`
-      INSERT INTO users (username, balance)
-      VALUES (?, ?)
-    `, [username, 0]);
+      INSERT INTO users (username, balance, invitation_code)
+      VALUES (?, ?, ?)
+    `, [username, 0, invitationCode || null]);
 
     // Auto-login after registration
     res.cookie("user", username, {
@@ -168,13 +177,14 @@ app.post("/api/register", async (req, res) => {
 
     res.json({ success: true, username: username });
   } catch (e) {
-    res.status(400).json({ error: "Username already exists" });
+    res.status(400).json({ error: "Email already registered" });
   }
 });
 
 // LOGIN
 app.post("/api/login", async (req, res) => {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
+  const username = email; // Map email to username
 
   const user = await db.get(
     "SELECT * FROM users WHERE username=?", [username]
