@@ -120,7 +120,7 @@
         };
 
         const lists = {
-            crypto: ["BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "SOLUSDT", "ADAUSDT", "DOGEUSDT", "TRXUSDT", "LTCUSDT", "DOTUSDT", "LINKUSDT", "SHIBUSDT", "AVAXUSDT", "BCHUSDT", "UNIUSDT"],
+            crypto: ["BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "SOLUSDT", "ADAUSDT", "DOGEUSDT", "TRXUSDT", "LTCUSDT", "DOTUSDT", "LINKUSDT", "SHIBUSDT", "AVAXUSDT", "BCHUSDT", "UNIUSDT", "MATICUSDT"],
             stock: ["AAPL", "TSLA", "GOOGL", "AMZN", "MSFT", "NVDA", "META", "NFLX"],
             forex: ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD"],
             gold: ["XAUUSD", "XAGUSD"]
@@ -143,6 +143,7 @@
             AVAXUSDT: {sym: "AVAX", img: "https://assets.coincap.io/assets/icons/avax@2x.png"},
             BCHUSDT: {sym: "BCH", img: "https://assets.coincap.io/assets/icons/bch@2x.png"},
             UNIUSDT: {sym: "UNI", img: "https://assets.coincap.io/assets/icons/uni@2x.png"},
+            MATICUSDT: {sym: "MATIC", img: "https://assets.coincap.io/assets/icons/matic@2x.png"},
             // Stock
             AAPL: {sym: "AAPL", bg: "#000000", icon: "fa-brands fa-apple"},
             TSLA: {sym: "TSLA", bg: "#cc0000", text: "T"},
@@ -228,14 +229,20 @@
             if (category === 'crypto') {
                 const symbols = lists.crypto;
                 try {
-                    const urlBackend = "/api/markets?symbols=" + encodeURIComponent(JSON.stringify(symbols));
-                    const res = await fetch(getApiBase() + urlBackend);
-                    if (!res.ok) throw new Error("backend_failed");
-                    const json = await res.json();
-                    json.forEach(item => prices.set(item.symbol, item));
+                    // Fetch from Binance API
+                    const res = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+                    if (!res.ok) throw new Error("binance_failed");
+                    const allData = await res.json();
+                    
+                    allData.forEach(d => {
+                        if(symbols.includes(d.symbol)) {
+                            prices.set(d.symbol, d);
+                        }
+                    });
                 } catch (e) {
-                    // Fallback handled by previous state or silent fail
                     console.log("Fetch failed", e);
+                    // Fallback to mock logic if API fails
+                    // (Optional: Implement robust fallback here if needed)
                 }
             } else {
                 updateMockData(category);
