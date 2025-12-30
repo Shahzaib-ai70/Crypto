@@ -636,12 +636,23 @@
             const fastUsdEl = document.getElementById('fastAssetsUsd');
             if(fastUsdEl) fastUsdEl.textContent = '$ ' + totalUsdt.toFixed(2);
 
+            // Update Futures Assets Display
+            const futuresBalEl = document.getElementById('futuresAssetsBalance');
+            if(futuresBalEl) futuresBalEl.textContent = (d.balance || 0).toFixed(2);
+            
+            const futuresUsdEl = document.getElementById('futuresAssetsUsd');
+            if(futuresUsdEl) futuresUsdEl.textContent = '$ ' + (d.balance || 0).toFixed(2);
+
             // Render Coin List
             const coinListEl = document.getElementById('coinList');
+            const cryptoSectionEl = document.getElementById('cryptoAssetsSection');
+            let hasCoins = false;
+
             if (coinListEl && d.balances) {
                 coinListEl.innerHTML = '';
                 d.balances.forEach(coin => {
                     if (coin.amount > 0) {
+                        hasCoins = true;
                         let price = parseFloat(currentPrices[coin.currency]);
                         if (isNaN(price)) price = 0;
                         
@@ -676,6 +687,14 @@
                         coinListEl.appendChild(item);
                     }
                 });
+            }
+            
+            if (cryptoSectionEl) {
+                if (hasCoins) {
+                    cryptoSectionEl.classList.remove('hidden');
+                } else {
+                    cryptoSectionEl.classList.add('hidden');
+                }
             }
         }
 
