@@ -118,6 +118,10 @@
             fetchData(tab);
         }
 
+        function getApiBase() {
+            return window.location.origin;
+        }
+
         async function fetchData(type) {
             const list = document.getElementById('listContainer');
             list.innerHTML = '<div class="flex justify-center py-10"><i class="fa-solid fa-circle-notch fa-spin text-gray-300 text-2xl"></i></div>';
@@ -129,7 +133,7 @@
             else if(type === 'trade') endpoint = '/api/history/trades';
 
             try {
-                const res = await fetch(endpoint, {
+                const res = await fetch(getApiBase() + endpoint, {
                     headers: { 'x-user': u }
                 });
                 const data = await res.json();

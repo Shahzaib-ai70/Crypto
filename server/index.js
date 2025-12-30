@@ -250,6 +250,52 @@ app.post("/api/logout", (req, res) => {
 });
 
 
+// HISTORY APIs
+app.get("/api/history/deposits", async (req, res) => {
+  const username = req.cookies.user || req.headers['x-user'];
+  if (!username) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const deposits = await db.all(
+      "SELECT * FROM deposits WHERE username=? ORDER BY created_at DESC", 
+      [username]
+    );
+    res.json(deposits);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get("/api/history/withdrawals", async (req, res) => {
+  const username = req.cookies.user || req.headers['x-user'];
+  if (!username) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const withdrawals = await db.all(
+      "SELECT * FROM withdrawals WHERE username=? ORDER BY created_at DESC", 
+      [username]
+    );
+    res.json(withdrawals);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get("/api/history/trades", async (req, res) => {
+  const username = req.cookies.user || req.headers['x-user'];
+  if (!username) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const trades = await db.all(
+      "SELECT * FROM trades WHERE username=? ORDER BY created_at DESC", 
+      [username]
+    );
+    res.json(trades);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 /* ================= ADMIN APIs ================= */
 
 app.get("/api/admin/stats", async (req, res) => {
