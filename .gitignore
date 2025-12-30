@@ -3,3 +3,6 @@ node_modules/
 *.zip
 *.backup
 server/data/db.sqlite
+server/db.sqlite
+*.sqlite
+.DS_Store

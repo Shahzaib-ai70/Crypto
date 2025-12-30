@@ -46,100 +46,52 @@
         <div class="flex justify-between items-center mb-6">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-bars text-gray-400"></i>
-                <h2 class="text-xl font-bold">BTC/USDT</h2>
-                <span class="text-green-custom bg-green-50 px-2 py-0.5 rounded text-xs">+1.24%</span>
+                <h2 class="text-xl font-bold" id="pairDisplay">BTC/USDT</h2>
+                <span id="changeDisplay" class="text-green-custom bg-green-50 px-2 py-0.5 rounded text-xs">--%</span>
             </div>
         </div>
 
         <div class="grid grid-cols-2 gap-6">
-            <!-- Left: Simple Order Book (Static List) -->
+            <!-- Left: Order Book -->
             <div>
                 <div class="flex justify-between text-xs text-gray-400 mb-2">
-                    <span>Price</span>
-                    <span>Amount</span>
+                    <span data-i18n="price">Price</span>
+                    <span data-i18n="amount">Amount</span>
                 </div>
-                <div class="space-y-1">
-                    <!-- Sells -->
-                    <div class="flex justify-between text-xs">
-                        <span class="text-red-custom">96,542.10</span>
-                        <span class="text-gray-500">0.4521</span>
-                    </div>
-                    <div class="flex justify-between text-xs">
-                        <span class="text-red-custom">96,541.00</span>
-                        <span class="text-gray-500">0.1250</span>
-                    </div>
-                    <div class="flex justify-between text-xs">
-                        <span class="text-red-custom">96,540.50</span>
-                        <span class="text-gray-500">0.8800</span>
-                    </div>
-                    <div class="flex justify-between text-xs">
-                        <span class="text-red-custom">96,539.20</span>
-                        <span class="text-gray-500">0.0500</span>
-                    </div>
-                    <div class="flex justify-between text-xs">
-                        <span class="text-red-custom">96,538.10</span>
-                        <span class="text-gray-500">1.2000</span>
-                    </div>
-
-                    <!-- Current Price -->
-                    <div class="py-2 text-center">
-                        <span class="text-lg font-bold text-green-custom">96,535.00</span>
-                        <div class="text-[10px] text-gray-400">≈ $96,535.00</div>
-                    </div>
-
-                    <!-- Buys -->
-                    <div class="flex justify-between text-xs">
-                        <span class="text-green-custom">96,534.90</span>
-                        <span class="text-gray-500">0.3300</span>
-                    </div>
-                    <div class="flex justify-between text-xs">
-                        <span class="text-green-custom">96,533.50</span>
-                        <span class="text-gray-500">0.5500</span>
-                    </div>
-                    <div class="flex justify-between text-xs">
-                        <span class="text-green-custom">96,532.10</span>
-                        <span class="text-gray-500">0.1100</span>
-                    </div>
-                    <div class="flex justify-between text-xs">
-                        <span class="text-green-custom">96,530.00</span>
-                        <span class="text-gray-500">0.9000</span>
-                    </div>
-                    <div class="flex justify-between text-xs">
-                        <span class="text-green-custom">96,528.50</span>
-                        <span class="text-gray-500">0.2500</span>
-                    </div>
+                <div class="space-y-1" id="orderBook">
+                    <div class="text-center text-xs text-gray-400 mt-10">Loading...</div>
                 </div>
             </div>
 
             <!-- Right: Form -->
             <div>
                 <div class="flex bg-gray-100 rounded p-1 mb-4">
-                    <button class="flex-1 py-1.5 rounded text-sm font-semibold bg-green-500 text-white">Buy</button>
-                    <button class="flex-1 py-1.5 rounded text-sm font-semibold text-gray-500">Sell</button>
+                    <button id="btnBuy" onclick="setSide('BUY')" class="flex-1 py-1.5 rounded text-sm font-semibold bg-green-500 text-white transition-colors" data-i18n="buy">Buy</button>
+                    <button id="btnSell" onclick="setSide('SELL')" class="flex-1 py-1.5 rounded text-sm font-semibold text-gray-500 transition-colors" data-i18n="sell">Sell</button>
                 </div>
 
                 <div class="space-y-3">
                     <div class="relative">
-                        <input type="text" class="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm" placeholder="Price" value="96535.00">
+                        <input id="inputPrice" type="number" step="0.01" class="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm" placeholder="Price">
                     </div>
                     <div class="relative">
-                        <input type="text" class="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm" placeholder="Amount">
+                        <input id="inputAmount" type="number" step="0.0001" class="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm" placeholder="Amount">
                     </div>
                 </div>
 
                 <div class="flex justify-between gap-1 mt-3 mb-4">
-                    <button class="flex-1 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] text-gray-500">25%</button>
-                    <button class="flex-1 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] text-gray-500">50%</button>
-                    <button class="flex-1 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] text-gray-500">75%</button>
-                    <button class="flex-1 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] text-gray-500">100%</button>
+                    <button onclick="setPercent(25)" class="flex-1 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] text-gray-500">25%</button>
+                    <button onclick="setPercent(50)" class="flex-1 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] text-gray-500">50%</button>
+                    <button onclick="setPercent(75)" class="flex-1 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] text-gray-500">75%</button>
+                    <button onclick="setPercent(100)" class="flex-1 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] text-gray-500">100%</button>
                 </div>
 
                 <div class="flex justify-between text-xs text-gray-400 mb-3">
-                    <span>Avail</span>
-                    <span>0.00 USDT</span>
+                    <span data-i18n="available">Avail</span>
+                    <span id="availBalance">0.00 USDT</span>
                 </div>
 
-                <button class="w-full py-3 rounded bg-green-500 text-white font-bold text-sm">Buy BTC</button>
+                <button id="btnAction" onclick="submitOrder()" class="w-full py-3 rounded bg-green-500 text-white font-bold text-sm">Buy BTC</button>
             </div>
         </div>
     </div>
@@ -174,12 +126,214 @@
     
     <script src="translations.js"></script>
     <script>
+        const API_BASE = 'http://localhost:3001/api'; 
+        let currentSymbol = 'BTCUSDT';
+        let currentSide = 'BUY';
+        let currentPrice = 0;
+        let availableUSDT = 0;
+        let availableCoin = 0; // Base asset balance
+
         document.addEventListener('DOMContentLoaded', () => {
             const savedLang = localStorage.getItem('appLanguage') || 'English';
             if (typeof setLanguage === 'function') {
                 setLanguage(savedLang);
             }
+            
+            // Initial Fetch
+            fetchData();
+            setInterval(fetchData, 3000); // Refresh every 3s
         });
+
+        function setSide(side) {
+            currentSide = side;
+            const btnBuy = document.getElementById('btnBuy');
+            const btnSell = document.getElementById('btnSell');
+            const btnAction = document.getElementById('btnAction');
+            const availDisplay = document.getElementById('availBalance');
+
+            if (side === 'BUY') {
+                btnBuy.className = "flex-1 py-1.5 rounded text-sm font-semibold bg-green-500 text-white transition-colors";
+                btnSell.className = "flex-1 py-1.5 rounded text-sm font-semibold text-gray-500 transition-colors";
+                btnAction.className = "w-full py-3 rounded bg-green-500 text-white font-bold text-sm";
+                btnAction.textContent = `Buy ${currentSymbol.replace('USDT','')}`;
+                availDisplay.textContent = `${availableUSDT.toFixed(2)} USDT`;
+            } else {
+                btnBuy.className = "flex-1 py-1.5 rounded text-sm font-semibold text-gray-500 transition-colors";
+                btnSell.className = "flex-1 py-1.5 rounded text-sm font-semibold bg-red-500 text-white transition-colors";
+                btnAction.className = "w-full py-3 rounded bg-red-500 text-white font-bold text-sm";
+                btnAction.textContent = `Sell ${currentSymbol.replace('USDT','')}`;
+                availDisplay.textContent = `${availableCoin.toFixed(4)} ${currentSymbol.replace('USDT','')}`;
+            }
+        }
+
+        async function fetchData() {
+            try {
+                // 1. Get Depth & Ticker
+                const [depthRes, tickerRes, userRes] = await Promise.all([
+                    fetch(`${API_BASE}/depth?symbol=${currentSymbol}`),
+                    fetch(`${API_BASE}/markets?symbols=${currentSymbol}`), // Array
+                    fetch(`${API_BASE}/me`) // User info for balance
+                ]);
+
+                if (depthRes.ok) {
+                    const depth = await depthRes.json();
+                    renderDepth(depth);
+                }
+
+                if (tickerRes.ok) {
+                    const tickers = await tickerRes.json();
+                    const ticker = tickers[0];
+                    if (ticker) {
+                        currentPrice = parseFloat(ticker.lastPrice);
+                        updateTickerDisplay(ticker);
+                    }
+                }
+
+                if (userRes.ok) {
+                    const user = await userRes.json();
+                    if (user) {
+                        // Update Balances
+                        // USDT
+                        const usdtBal = user.balances ? user.balances.find(b => b.currency === 'USDT') : null;
+                        availableUSDT = usdtBal ? usdtBal.amount : (user.balance || 0);
+                        
+                        // Coin
+                        const coin = currentSymbol.replace('USDT', '');
+                        const coinBal = user.balances ? user.balances.find(b => b.currency === coin) : null;
+                        availableCoin = coinBal ? coinBal.amount : 0;
+                        
+                        // Update UI based on side
+                        const availDisplay = document.getElementById('availBalance');
+                        if (currentSide === 'BUY') {
+                            availDisplay.textContent = `${availableUSDT.toFixed(2)} USDT`;
+                        } else {
+                            availDisplay.textContent = `${availableCoin.toFixed(4)} ${coin}`;
+                        }
+                    }
+                }
+
+            } catch (e) {
+                console.error("Fetch error:", e);
+            }
+        }
+
+        function renderDepth(depth) {
+            const container = document.getElementById('orderBook');
+            if (!depth || !depth.bids || !depth.asks) return;
+
+            // Take top 5 asks (sell orders) - Reverse order to show lowest ask at bottom
+            const asks = depth.asks.slice(0, 5).reverse(); 
+            // Take top 5 bids (buy orders)
+            const bids = depth.bids.slice(0, 5);
+
+            let html = '';
+
+            // Asks (Red)
+            asks.forEach(ask => {
+                const px = parseFloat(ask[0]).toFixed(2);
+                const amt = parseFloat(ask[1]).toFixed(4);
+                html += `
+                    <div class="flex justify-between text-xs">
+                        <span class="text-red-custom">${px}</span>
+                        <span class="text-gray-500">${amt}</span>
+                    </div>
+                `;
+            });
+
+            // Current Price Middle
+            html += `
+                <div class="py-2 text-center">
+                    <span class="text-lg font-bold ${currentPrice >= parseFloat(asks[asks.length-1]?.[0] || 0) ? 'text-green-custom' : 'text-red-custom'}">${currentPrice.toFixed(2)}</span>
+                    <div class="text-[10px] text-gray-400">≈ $${currentPrice.toFixed(2)}</div>
+                </div>
+            `;
+
+            // Bids (Green)
+            bids.forEach(bid => {
+                const px = parseFloat(bid[0]).toFixed(2);
+                const amt = parseFloat(bid[1]).toFixed(4);
+                html += `
+                    <div class="flex justify-between text-xs">
+                        <span class="text-green-custom">${px}</span>
+                        <span class="text-gray-500">${amt}</span>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function updateTickerDisplay(ticker) {
+            const changeEl = document.getElementById('changeDisplay');
+            
+            const chg = parseFloat(ticker.priceChangePercent);
+            const color = chg >= 0 ? "text-green-custom bg-green-50" : "text-red-custom bg-red-50";
+            const sign = chg >= 0 ? "+" : "";
+            
+            changeEl.className = `${color} px-2 py-0.5 rounded text-xs`;
+            changeEl.textContent = `${sign}${chg.toFixed(2)}%`;
+            
+            // Also update input price if empty
+            const inputPrice = document.getElementById('inputPrice');
+            if (!inputPrice.value) {
+                inputPrice.value = parseFloat(ticker.lastPrice).toFixed(2);
+            }
+        }
+
+        function setPercent(pct) {
+            const inputAmount = document.getElementById('inputAmount');
+            const inputPrice = document.getElementById('inputPrice');
+            
+            const price = parseFloat(inputPrice.value) || currentPrice;
+            if (price <= 0) return;
+
+            if (currentSide === 'BUY') {
+                // Calculate amount based on USDT balance
+                const usdtToUse = availableUSDT * (pct / 100);
+                const amount = usdtToUse / price;
+                inputAmount.value = amount.toFixed(4);
+            } else {
+                // Calculate amount based on Coin balance
+                const amount = availableCoin * (pct / 100);
+                inputAmount.value = amount.toFixed(4);
+            }
+        }
+
+        async function submitOrder() {
+            const price = document.getElementById('inputPrice').value;
+            const amount = document.getElementById('inputAmount').value;
+            
+            if (!amount || parseFloat(amount) <= 0) {
+                alert("Please enter a valid amount");
+                return;
+            }
+
+            const payload = {
+                symbol: currentSymbol,
+                side: currentSide,
+                type: 'LIMIT', // Simplified
+                price: price,
+                quantity: amount
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/spot/order`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert("Order placed successfully!");
+                    fetchData(); // Refresh balances
+                }
+            } catch (e) {
+                alert("Order failed: " + e.message);
+            }
+        }
     </script>
 </body>
 </html>

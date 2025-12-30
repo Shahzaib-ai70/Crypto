@@ -940,6 +940,116 @@ app.get("/api/user/settings", async (req, res) => {
     }
 });
 
+/* ================= SPOT TRADING APIs ================= */
+
+// ORDER BOOK (Spot)
+app.get("/api/depth", async (req, res) => {
+    const symbol = req.query.symbol || "BTCUSDT";
+    try {
+        const r = await fetch(`https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=10`);
+        const data = await r.json();
+        res.json(data);
+    } catch (e) {
+        res.json({ bids: [], asks: [] });
+    }
+});
+
+// SPOT ORDER
+app.post("/api/spot/order", async (req, res) => {
+    const username = req.cookies.user || req.headers['x-user'];
+    if (!username) return res.status(401).json({ error: "Unauthorized" });
+
+    const { symbol, side, type, price, quantity } = req.body;
+    // side: BUY or SELL
+
+    if (!symbol || !side || !quantity) {
+        return res.status(400).json({ error: "Missing fields" });
+    }
+
+    const qty = parseFloat(quantity);
+    if (isNaN(qty) || qty <= 0) return res.status(400).json({ error: "Invalid quantity" });
+
+    try {
+        await db.run("BEGIN TRANSACTION");
+        
+        // Get Current Price
+        const prices = await getPrices();
+        const baseAsset = symbol.replace('USDT', '');
+        const currentPrice = prices[baseAsset] || 0;
+        
+        if (currentPrice <= 0) throw new Error("Price unavailable");
+
+        const tradePrice = type === 'LIMIT' && price ? parseFloat(price) : currentPrice;
+        const totalCost = qty * tradePrice;
+
+        if (side === 'BUY') {
+            // BUY: Pay USDT, Get Coin
+            let usdtBal = 0;
+            // Check user_balances first
+            const ub = await db.get("SELECT amount FROM user_balances WHERE username=? AND currency='USDT'", [username]);
+            if (ub) usdtBal = ub.amount;
+            else {
+                // Fallback to main users table
+                const u = await db.get("SELECT balance FROM users WHERE username=?", [username]);
+                usdtBal = u ? u.balance : 0;
+            }
+
+            if (usdtBal < totalCost) {
+                await db.run("ROLLBACK");
+                return res.status(400).json({ error: "Insufficient USDT balance" });
+            }
+
+            // Deduct USDT
+            if (ub) {
+                 await db.run("UPDATE user_balances SET amount = amount - ? WHERE username=? AND currency='USDT'", [totalCost, username]);
+            } else {
+                 await db.run("UPDATE users SET balance = balance - ? WHERE username=?", [totalCost, username]);
+                 // Also insert into user_balances to migrate
+                 await db.run("INSERT INTO user_balances (username, currency, amount) VALUES (?, 'USDT', ?)", [username, usdtBal - totalCost]);
+            }
+
+            // Add Coin
+            await db.run(`
+                INSERT INTO user_balances (username, currency, amount) VALUES (?, ?, ?)
+                ON CONFLICT(username, currency) DO UPDATE SET amount = amount + ?
+            `, [username, baseAsset, qty, qty]);
+
+        } else {
+            // SELL: Pay Coin, Get USDT
+            const cb = await db.get("SELECT amount FROM user_balances WHERE username=? AND currency=?", [username, baseAsset]);
+            if (!cb || cb.amount < qty) {
+                 await db.run("ROLLBACK");
+                 return res.status(400).json({ error: `Insufficient ${baseAsset} balance` });
+            }
+
+            // Deduct Coin
+            await db.run("UPDATE user_balances SET amount = amount - ? WHERE username=? AND currency=?", [qty, username, baseAsset]);
+
+            // Add USDT
+            await db.run(`
+                INSERT INTO user_balances (username, currency, amount) VALUES (?, 'USDT', ?)
+                ON CONFLICT(username, currency) DO UPDATE SET amount = amount + ?
+            `, [username, totalCost, totalCost]);
+            
+            // Sync legacy balance
+            await db.run("UPDATE users SET balance = balance + ? WHERE username=?", [totalCost, username]);
+        }
+
+        // Record Trade
+        await db.run(`
+            INSERT INTO trades (username, symbol, side, amount, profit, result)
+            VALUES (?, ?, ?, ?, ?, 'filled')
+        `, [username, symbol, side, qty, tradePrice]); 
+
+        await db.run("COMMIT");
+        res.json({ success: true, price: tradePrice, quantity: qty, cost: totalCost });
+
+    } catch (e) {
+        await db.run("ROLLBACK");
+        res.status(500).json({ error: e.message });
+    }
+});
+
 /* ================== DEMO TRADE ENGINE ================== */
 // Admin decides winning side
 let ADMIN_WIN_SIDE = "short"; // "long" or "short"
