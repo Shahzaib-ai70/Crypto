@@ -552,14 +552,8 @@
         }, 3000);
     }
 
-    const prices = {
-        'BTC/USDT': 88294.30,
-        'ETH/USDT': 2982.34,
-        'LTC/USDT': 76.53,
-        'XRP/USDT': 1.9050,
-        'DOGE/USDT': 0.13081,
-        'SOL/USDT': 112.35
-    };
+    const prices = {}; // Initialized empty, populated by API
+
     
     // Mock prices for other categories
     const mockPrices = {
@@ -581,6 +575,9 @@
     let wsSymbol = null;
 
     function initWebSocket() {
+        console.log("Using Backend Polling for prices...");
+        // WebSocket disabled to ensure all traffic goes through backend proxy
+        /*
         if (currentCategory !== 'crypto') {
             if (ws) { ws.close(); ws = null; }
             wsSymbol = null;
@@ -662,6 +659,7 @@
                 setTimeout(initWebSocket, 5000);
             }
         };
+        */
     }
 
     const assetLists = {
@@ -1007,17 +1005,11 @@
     // Fetch User Balance
     let currentUserBalance = 0;
 
-    function getApiBase() {
-        // Per VPS requirements: Always use relative path or window.location.origin
-        // NGINX handles proxying /api to the backend
-        return window.location.origin;
-    }
-
     async function fetchUserBalance() {
         const u = localStorage.getItem('authUser');
         if (!u) return;
         try {
-            const res = await fetch(getApiBase() + '/api/me', { headers: { 'x-user': u } });
+            const res = await fetch(window.location.origin + '/api/me', { headers: { 'x-user': u } });
             const data = await res.json();
             if (data && data.balance !== undefined) {
                 currentUserBalance = parseFloat(data.balance);

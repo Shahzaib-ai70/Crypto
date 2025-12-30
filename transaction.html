@@ -126,18 +126,7 @@
     
     <script src="translations.js"></script>
     <script>
-        function getApiBase() {
-            // For VPS/Production: use relative path if on same domain
-            if (window.location.protocol === 'file:') {
-                 // Only for local testing without server
-                 return 'http://localhost:3001';
-            }
-            // For production (VPS), return empty string to use relative path '/api'
-            // or window.location.origin if preferred. Relative is safest for proxying.
-            return ''; 
-        }
-        
-        const API_BASE = `${getApiBase()}/api`; 
+        const API_BASE = `${window.location.origin}/api`; 
         let currentSymbol = 'BTCUSDT';
         let currentSide = 'BUY';
         let currentPrice = 0;
@@ -174,6 +163,9 @@
         });
 
         function initWebSocket() {
+            console.log("Using Backend Polling...");
+            // WebSocket disabled to ensure all traffic goes through backend proxy
+            /*
             const symbol = currentSymbol.toLowerCase();
             if (ws && wsSymbol === symbol && ws.readyState === WebSocket.OPEN) return;
 
@@ -211,6 +203,7 @@
                 console.log("WS Closed");
                 setTimeout(initWebSocket, 3000);
             };
+            */
         }
         
         async function fetchTickerRest() {

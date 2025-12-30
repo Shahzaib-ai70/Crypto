@@ -25,11 +25,11 @@ app.use(cookieParser());
    NGINX serves frontend on port 80.
    Node.js serves API on port 3001 (Internal).
 */
-// const rootDir = path.join(__dirname, "..");
-// app.use(express.static(rootDir));
-// app.get("/", (req, res) => {
-//   res.sendFile(path.join(rootDir, "index.html"));
-// });
+const rootDir = path.join(__dirname, "..");
+app.use(express.static(rootDir));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(rootDir, "index.html"));
+});
 app.use("/admin", express.static(path.join(__dirname, "admin")));
 
 
@@ -563,6 +563,51 @@ app.get("/api/markets", async (req, res) => {
     } catch (e) {
         console.error("Market data error:", e);
         res.status(500).json({ error: "Failed to fetch market data" });
+    }
+});
+
+// KLINES (Candlestick data)
+app.get("/api/klines", async (req, res) => {
+    try {
+        const { symbol, interval, limit } = req.query;
+        if (!symbol) return res.status(400).json({ error: "Missing symbol" });
+
+        // Ensure symbol has USDT if not present (heuristic for this app)
+        let binanceSymbol = symbol.toUpperCase();
+        // If symbol doesn't end with USDT and is not a stable pair like USDC/USDT (which is unlikely here), append USDT
+        // But the frontend usually sends 'BTC' or 'BTCUSDT'.
+        // If it sends 'BTC', we append 'USDT'.
+        if (!binanceSymbol.endsWith('USDT') && !binanceSymbol.endsWith('BTC') && !binanceSymbol.endsWith('ETH') && !binanceSymbol.endsWith('BNB')) {
+             binanceSymbol += 'USDT';
+        }
+        
+        // However, the frontend sends 'BTC' (stripped from 'BTC/USDT').
+        // So standardizing to 'BTCUSDT' is safe for this specific app context.
+        if (!binanceSymbol.includes('USDT')) {
+            binanceSymbol += 'USDT';
+        }
+
+        const binanceInterval = interval || '1m';
+        const binanceLimit = limit || 100;
+
+        const url = `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${binanceInterval}&limit=${binanceLimit}`;
+        
+        try {
+            const r = await fetch(url, { headers: { 'User-Agent': 'Node.js/1.0' } });
+            if (r.ok) {
+                const data = await r.json();
+                return res.json(data);
+            } else {
+                 console.error("Binance klines error:", r.status);
+            }
+        } catch (e) {
+            console.error("Binance klines fetch failed:", e.message);
+        }
+
+        res.json([]);
+    } catch (e) {
+        console.error("Klines error:", e);
+        res.status(500).json({ error: "Failed to fetch klines" });
     }
 });
 
