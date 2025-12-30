@@ -387,21 +387,31 @@ async function getPrices() {
     console.error("Failed to fetch prices:", e);
     // Fallback
     return {
-      BTC: 95000,
-      ETH: 3600,
-      BNB: 600,
-      SOL: 150,
-      XRP: 2.5,
-      ADA: 1.2,
-      DOGE: 0.4,
-      TRX: 0.2,
-      LTC: 100,
-      DOT: 10,
-      LINK: 20,
-      SHIB: 0.00003,
-      AVAX: 40,
-      BCH: 400,
-      UNI: 12,
+      BTC: 96500,
+      ETH: 3700,
+      BNB: 620,
+      SOL: 155,
+      XRP: 2.45,
+      ADA: 1.15,
+      DOGE: 0.38,
+      TRX: 0.22,
+      LTC: 105,
+      DOT: 9.5,
+      LINK: 21,
+      SHIB: 0.000032,
+      AVAX: 42,
+      BCH: 410,
+      UNI: 12.5,
+      MATIC: 0.65,
+      XLM: 0.45,
+      ETC: 32,
+      FIL: 9,
+      NEAR: 7.5,
+      APT: 15,
+      ARB: 1.8,
+      OP: 3.5,
+      PEPE: 0.00001,
+      FLOKI: 0.0002,
       USDT: 1
     };
   }
@@ -440,6 +450,43 @@ app.get("/api/markets", async (req, res) => {
             }
         } catch (e) {
             console.error("Binance 24hr fetch failed:", e.message);
+        }
+
+        // Fallback: CoinGecko (Very reliable public API)
+        try {
+             const geckoUrl = `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,binancecoin,ripple,solana,cardano,dogecoin,tron,litecoin,polkadot,chainlink,shiba-inu,avalanche-2,bitcoin-cash,uniswap,matic-network,stellar,ethereum-classic,filecoin,near,aptos,arbitrum,optimism,pepe,floki&vs_currencies=usd&include_24hr_change=true`;
+             const rGecko = await fetch(geckoUrl);
+             if (rGecko.ok) {
+                 const geckoData = await rGecko.json();
+                 // Map: symbol -> geckoId
+                 const mapSym = {
+                     'BTCUSDT': 'bitcoin', 'ETHUSDT': 'ethereum', 'BNBUSDT': 'binancecoin',
+                     'XRPUSDT': 'ripple', 'SOLUSDT': 'solana', 'ADAUSDT': 'cardano',
+                     'DOGEUSDT': 'dogecoin', 'TRXUSDT': 'tron', 'LTCUSDT': 'litecoin',
+                     'DOTUSDT': 'polkadot', 'LINKUSDT': 'chainlink', 'SHIBUSDT': 'shiba-inu',
+                     'AVAXUSDT': 'avalanche-2', 'BCHUSDT': 'bitcoin-cash', 'UNIUSDT': 'uniswap',
+                     'MATICUSDT': 'matic-network', 'XLMUSDT': 'stellar', 'ETCUSDT': 'ethereum-classic',
+                     'FILUSDT': 'filecoin', 'NEARUSDT': 'near', 'APTUSDT': 'aptos',
+                     'ARBUSDT': 'arbitrum', 'OPUSDT': 'optimism', 'PEPEUSDT': 'pepe', 'FLOKIUSDT': 'floki'
+                 };
+                 
+                 const markets = requestedSymbols.map(sym => {
+                     const id = mapSym[sym];
+                     if (id && geckoData[id]) {
+                         return {
+                             symbol: sym,
+                             lastPrice: geckoData[id].usd.toString(),
+                             priceChangePercent: geckoData[id].usd_24h_change.toFixed(2),
+                             volume: "0" // CoinGecko simple price doesn't have volume easily
+                         };
+                     }
+                     return null;
+                 }).filter(Boolean);
+                 
+                 if (markets.length > 0) return res.json(markets);
+             }
+        } catch (e) {
+             console.error("CoinGecko market fetch failed:", e.message);
         }
 
         // Fallback: CoinCap (Public API, no auth, often works on VPS)

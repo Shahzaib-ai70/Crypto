@@ -298,23 +298,71 @@
         async function fetchPricesRest() {
              try {
                  const symbolsParam = JSON.stringify(lists.crypto);
-                 // Use a no-cors mode if possible or try/catch around it
-                 // Note: 'no-cors' yields opaque response which we can't read, so we must rely on CORS being allowed
-                 const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`);
-                 if (!res.ok) throw new Error("binance_failed");
+                 // Try local backend first to avoid CORS issues
+                 const url = `${getApiBase()}/api/markets?symbols=${encodeURIComponent(symbolsParam)}`;
+                 const res = await fetch(url);
+                 if (!res.ok) throw new Error("Backend API Failed");
                  const allData = await res.json();
                  
-                 allData.forEach(d => {
-                     if(lists.crypto.includes(d.symbol)) {
-                         cryptoData[d.symbol] = d;
-                         prices.set(d.symbol, d);
-                     }
-                 });
-                 renderList();
+                 if(Array.isArray(allData)) {
+                    allData.forEach(d => {
+                        if(d && d.symbol && lists.crypto.includes(d.symbol)) {
+                            cryptoData[d.symbol] = d;
+                            prices.set(d.symbol, d);
+                        }
+                    });
+                    renderList();
+                 }
              } catch (e) { 
-                 console.log("Fetch failed", e); 
-                 // Ensure we render at least the static data if fetch fails
-                 renderList();
+                 console.log("Backend fetch failed, trying direct", e); 
+                 // Fallback to direct Binance
+                 try {
+                     const symbolsParam = JSON.stringify(lists.crypto);
+                     const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`);
+                     if (!res.ok) throw new Error("Binance API Failed");
+                     const allData = await res.json();
+                     allData.forEach(d => {
+                         if(lists.crypto.includes(d.symbol)) {
+                             cryptoData[d.symbol] = d;
+                             prices.set(d.symbol, d);
+                         }
+                     });
+                     renderList();
+                 } catch(err) {
+                     console.log("All fetches failed", err);
+                     
+                     // LAST RESORT: Try CoinGecko Client-Side
+                     try {
+                        const geckoUrl = `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,binancecoin,ripple,solana,cardano,dogecoin,tron,litecoin,polkadot,chainlink,shiba-inu,avalanche-2,bitcoin-cash,uniswap,matic-network&vs_currencies=usd&include_24hr_change=true`;
+                        const res = await fetch(geckoUrl);
+                        if(res.ok) {
+                            const geckoData = await res.json();
+                            const mapSym = {
+                                'BTCUSDT': 'bitcoin', 'ETHUSDT': 'ethereum', 'BNBUSDT': 'binancecoin',
+                                'XRPUSDT': 'ripple', 'SOLUSDT': 'solana', 'ADAUSDT': 'cardano',
+                                'DOGEUSDT': 'dogecoin', 'TRXUSDT': 'tron', 'LTCUSDT': 'litecoin',
+                                'DOTUSDT': 'polkadot', 'LINKUSDT': 'chainlink', 'SHIBUSDT': 'shiba-inu',
+                                'AVAXUSDT': 'avalanche-2', 'BCHUSDT': 'bitcoin-cash', 'UNIUSDT': 'uniswap',
+                                'MATICUSDT': 'matic-network'
+                            };
+                            lists.crypto.forEach(s => {
+                                const id = mapSym[s];
+                                if(id && geckoData[id]) {
+                                    cryptoData[s] = {
+                                        symbol: s,
+                                        lastPrice: geckoData[id].usd,
+                                        priceChangePercent: geckoData[id].usd_24h_change,
+                                        volume: 0
+                                    };
+                                    prices.set(s, cryptoData[s]);
+                                }
+                            });
+                            renderList();
+                        }
+                     } catch(e2) { console.error("Even CoinGecko failed", e2); }
+                     
+                     renderList();
+                 }
              }
         }
 

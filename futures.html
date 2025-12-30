@@ -788,13 +788,15 @@
             btn.className = 'w-full text-left px-3 py-2 hover:bg-gray-50';
             btn.textContent = asset;
             btn.onclick = () => {
-                selectedPair = asset;
-                pairName.textContent = asset;
-                dropdown.classList.add('hidden');
-                mockCandles = [];
-                updateTicker();
-                updateChart();
-            };
+                    selectedPair = asset;
+                    pairName.textContent = asset;
+                    dropdown.classList.add('hidden');
+                    mockCandles = [];
+                    updateTicker();
+                    updateChart();
+                    // Reconnect WebSocket for the new asset
+                    initWebSocket();
+                };
             dropdown.appendChild(btn);
         });
     }

@@ -629,23 +629,79 @@
             };
         }
 
-        // Fallback REST fetch (only used if WS fails)
+        // Helper for API Base
+        function getApiBase() {
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                if (window.location.port === '3001') return window.location.origin;
+                return 'http://localhost:3001';
+            }
+            return window.location.origin;
+        }
+
+        // Fallback REST fetch (only used if WS fails or initializing)
         async function fetchPricesRest() {
              try {
                  const symbolsParam = JSON.stringify(TARGET_SYMBOLS);
-                 const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`);
-                 if(!res.ok) throw new Error("API Error");
+                 // Use intelligent API base
+                 const url = `${getApiBase()}/api/markets?symbols=${encodeURIComponent(symbolsParam)}`;
+                 
+                 const res = await fetch(url);
+                 if(!res.ok) throw new Error("Backend API Error");
                  const data = await res.json();
-                 data.forEach(d => {
-                     if(TARGET_SYMBOLS.includes(d.symbol)) {
-                         marketData[d.symbol] = d;
-                     }
-                 });
-                 renderList(TARGET_SYMBOLS.map(s => marketData[s]).filter(Boolean));
+                 
+                 if(Array.isArray(data)) {
+                     data.forEach(d => {
+                         if(d && d.symbol && TARGET_SYMBOLS.includes(d.symbol)) {
+                             marketData[d.symbol] = d;
+                         }
+                     });
+                     renderList(TARGET_SYMBOLS.map(s => marketData[s]).filter(Boolean));
+                 }
              } catch(e) { 
-                 console.error(e); 
-                 // Ensure render even if fetch fails
-                 renderList(TARGET_SYMBOLS.map(s => marketData[s]).filter(Boolean));
+                 console.error("Backend fetch failed, trying direct:", e); 
+                 // Fallback to direct Binance (might fail CORS but worth a try)
+                 try {
+                    const symbolsParam = JSON.stringify(TARGET_SYMBOLS);
+                    const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`);
+                    if(!res.ok) throw new Error("Binance API Error");
+                    const data = await res.json();
+                    data.forEach(d => {
+                        if(TARGET_SYMBOLS.includes(d.symbol)) {
+                            marketData[d.symbol] = d;
+                        }
+                    });
+                    renderList(TARGET_SYMBOLS.map(s => marketData[s]).filter(Boolean));
+                 } catch(err) {
+                     console.error("All fetches failed", err);
+                     
+                     // LAST RESORT: Try CoinGecko Client-Side
+                     try {
+                        const geckoUrl = `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,binancecoin,ripple,solana,cardano,dogecoin,tron,litecoin,polkadot,chainlink,shiba-inu,avalanche-2,bitcoin-cash,uniswap,matic-network&vs_currencies=usd&include_24hr_change=true`;
+                        const res = await fetch(geckoUrl);
+                        if(res.ok) {
+                            const geckoData = await res.json();
+                            const mapSym = {
+                                'BTCUSDT': 'bitcoin', 'ETHUSDT': 'ethereum', 'BNBUSDT': 'binancecoin',
+                                'XRPUSDT': 'ripple', 'SOLUSDT': 'solana', 'ADAUSDT': 'cardano',
+                                'DOGEUSDT': 'dogecoin', 'TRXUSDT': 'tron', 'LTCUSDT': 'litecoin',
+                                'DOTUSDT': 'polkadot', 'LINKUSDT': 'chainlink', 'SHIBUSDT': 'shiba-inu',
+                                'AVAXUSDT': 'avalanche-2', 'BCHUSDT': 'bitcoin-cash', 'UNIUSDT': 'uniswap',
+                                'MATICUSDT': 'matic-network'
+                            };
+                            TARGET_SYMBOLS.forEach(s => {
+                                const id = mapSym[s];
+                                if(id && geckoData[id]) {
+                                    marketData[s] = {
+                                        symbol: s,
+                                        lastPrice: geckoData[id].usd,
+                                        priceChangePercent: geckoData[id].usd_24h_change
+                                    };
+                                }
+                            });
+                            renderList(TARGET_SYMBOLS.map(s => marketData[s]).filter(Boolean));
+                        }
+                     } catch(e2) { console.error("Even CoinGecko failed", e2); }
+                 }
              }
         }
 
