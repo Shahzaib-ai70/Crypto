@@ -160,7 +160,13 @@ app.post("/api/register", async (req, res) => {
       VALUES (?, ?)
     `, [username, 0]);
 
-    res.json({ success: true });
+    // Auto-login after registration
+    res.cookie("user", username, {
+      httpOnly: true,
+      sameSite: "lax"
+    });
+
+    res.json({ success: true, username: username });
   } catch (e) {
     res.status(400).json({ error: "Username already exists" });
   }

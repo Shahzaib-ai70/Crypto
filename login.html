@@ -1,70 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Bitsafe</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="translations.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Bitsafe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="translations.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .text-yellow-custom { color: #F0B90B; }
+        .bg-yellow-custom { background-color: #F0B90B; }
+    </style>
 </head>
-<body class="min-h-screen bg-white max-w-md mx-auto">
-  <div class="p-6">
-    <!-- Header with CS Icon -->
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-xl font-bold text-gray-800" data-i18n="login">Login</h1>
-      <div class="flex items-center space-x-4">
-        <a href="https://wa.me/" target="_blank" class="text-gray-500 hover:text-gray-800">
-            <i class="fa-solid fa-headset text-xl"></i>
-        </a>
-        <a href="register.html" class="text-sm text-gray-500 hover:underline" data-i18n="register">Register</a>
-      </div>
+<body class="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden p-8">
+        
+        <!-- Logo Section -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center gap-2 justify-center mb-2">
+                <div class="w-10 h-10 bg-yellow-custom rounded-lg flex items-center justify-center text-gray-900 text-xl font-bold">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <span class="text-2xl font-bold text-gray-900 tracking-tight">BITSAFE</span>
+            </div>
+            <p class="text-gray-500 text-sm" data-i18n="login_subtitle">Welcome back! Please login to continue.</p>
+        </div>
+
+        <!-- Form Section -->
+        <form id="loginForm" class="space-y-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2" data-i18n="username">Username</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                        <i class="fa-regular fa-user"></i>
+                    </span>
+                    <input type="text" id="loginUsername" class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-yellow-custom focus:ring-1 focus:ring-yellow-custom transition-all bg-gray-50 focus:bg-white" placeholder="Enter your username" required>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2" data-i18n="password">Password</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                        <i class="fa-solid fa-lock"></i>
+                    </span>
+                    <input type="password" id="loginPassword" class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-yellow-custom focus:ring-1 focus:ring-yellow-custom transition-all bg-gray-50 focus:bg-white" placeholder="Enter your password" required>
+                </div>
+                <div class="flex justify-end mt-2">
+                    <a href="https://wa.me/" target="_blank" class="text-sm text-yellow-600 hover:text-yellow-700 font-medium">Forgot Password?</a>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-yellow-custom text-gray-900 font-bold py-3.5 rounded-xl hover:bg-yellow-500 transition-colors shadow-lg shadow-yellow-500/20 transform hover:-translate-y-0.5 active:translate-y-0 duration-200" data-i18n="login">
+                Login
+            </button>
+        </form>
+
+        <!-- Footer Section -->
+        <div class="mt-8 text-center space-y-4">
+            <p class="text-sm text-gray-500">
+                Don't have an account? 
+                <a href="register.html" class="text-yellow-600 font-semibold hover:text-yellow-700 transition-colors" data-i18n="register">Register</a>
+            </p>
+            
+            <div class="flex items-center justify-center gap-4 text-gray-400 text-sm pt-4 border-t border-gray-100">
+                <a href="https://wa.me/" target="_blank" class="hover:text-gray-600 transition-colors flex items-center gap-1">
+                    <i class="fa-brands fa-whatsapp"></i> Support
+                </a>
+                <span>•</span>
+                <span class="text-xs">Secure & Encrypted</span>
+            </div>
+        </div>
     </div>
-    <form id="loginForm" class="space-y-4">
-      <div>
-        <label class="text-sm text-gray-600" data-i18n="username">Username</label>
-        <input type="text" id="loginUsername" class="w-full mt-1 px-3 py-2 border rounded-lg focus:outline-none" placeholder="Enter username" data-i18n="username" required>
-      </div>
-      <div>
-        <label class="text-sm text-gray-600" data-i18n="password">Password</label>
-        <input type="password" id="loginPassword" class="w-full mt-1 px-3 py-2 border rounded-lg focus:outline-none" placeholder="Enter password" data-i18n="password" required>
-      </div>
-      <button type="submit" class="w-full py-3 bg-gray-900 text-white rounded-lg font-semibold" data-i18n="login">
-        Login
-      </button>
-    </form>
-  </div>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const savedLang = localStorage.getItem('appLanguage') || 'English';
-        if (typeof setLanguage === 'function') {
-            setLanguage(savedLang);
-        }
-    });
 
-    document.getElementById('loginForm').addEventListener('submit', function (e) {
-      e.preventDefault();
-      const u = document.getElementById('loginUsername').value.trim();
-      const p = document.getElementById('loginPassword').value.trim();
-      if (!u || !p) return;
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedLang = localStorage.getItem('appLanguage') || 'English';
+            if (typeof setLanguage === 'function') {
+                setLanguage(savedLang);
+            }
+        });
 
-      const url = window.location.origin + '/api/login';
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: u, password: p })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          localStorage.setItem('authUser', u); // Keep for frontend compatibility
-          window.location.replace('index.html');
-        } else {
-          alert('Login failed: ' + (data.error || 'Invalid credentials'));
-        }
-      })
-      .catch(err => alert('Error: ' + err));
-    });
-  </script>
+        document.getElementById('loginForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const u = document.getElementById('loginUsername').value.trim();
+            const p = document.getElementById('loginPassword').value.trim();
+            if (!u || !p) return;
+
+            const btn = this.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Logging in...';
+            btn.disabled = true;
+
+            const url = window.location.origin + '/api/login';
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    localStorage.setItem('authUser', u); 
+                    window.location.replace('index.html');
+                } else {
+                    alert('Login failed: ' + (data.error || 'Invalid credentials'));
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
+            })
+            .catch(err => {
+                alert('Error: ' + err);
+                btn.innerText = originalText;
+                btn.disabled = false;
+            });
+        });
+    </script>
 </body>
 </html>
