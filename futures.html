@@ -598,54 +598,57 @@
         }
 
         wsSymbol = symbol;
-        ws = new WebSocket('wss://stream.binance.com:9443/ws/' + symbol + '@ticker');
+        // Use standard port 443
+        ws = new WebSocket('wss://stream.binance.com/ws/' + symbol + '@ticker');
 
         ws.onopen = () => {
             console.log('Connected to Binance WS for ' + symbol);
         };
 
         ws.onmessage = (event) => {
-            const msg = JSON.parse(event.data);
-            if (msg.e === '24hrTicker') {
-                const price = parseFloat(msg.c);
-                const high = parseFloat(msg.h);
-                const low = parseFloat(msg.l);
-                const vol = parseFloat(msg.v);
-                const qVol = parseFloat(msg.q);
-                const changePct = parseFloat(msg.P);
-                
-                // Update global state
-                prices[selectedPair] = price;
-                
-                // Update UI
-                requestAnimationFrame(() => {
-                    const pairPrice = document.getElementById('pairPrice');
-                    const pairUsd = document.getElementById('pairUsd');
-                    const statHigh = document.getElementById('statHigh');
-                    const statLow = document.getElementById('statLow');
-                    const statVolBTC = document.getElementById('statVolBTC');
-                    const statVolUSDT = document.getElementById('statVolUSDT');
-                    const modalPrice = document.getElementById('modalPrice');
-                    const orderModal = document.getElementById('orderModal');
+            try {
+                const msg = JSON.parse(event.data);
+                if (msg.e === '24hrTicker') {
+                    const price = parseFloat(msg.c);
+                    const high = parseFloat(msg.h);
+                    const low = parseFloat(msg.l);
+                    const vol = parseFloat(msg.v);
+                    const qVol = parseFloat(msg.q);
+                    const changePct = parseFloat(msg.P);
+                    
+                    // Update global state
+                    prices[selectedPair] = price;
+                    
+                    // Update UI
+                    requestAnimationFrame(() => {
+                        const pairPrice = document.getElementById('pairPrice');
+                        const pairUsd = document.getElementById('pairUsd');
+                        const statHigh = document.getElementById('statHigh');
+                        const statLow = document.getElementById('statLow');
+                        const statVolBTC = document.getElementById('statVolBTC');
+                        const statVolUSDT = document.getElementById('statVolUSDT');
+                        const modalPrice = document.getElementById('modalPrice');
+                        const orderModal = document.getElementById('orderModal');
 
-                    if(pairPrice) {
-                        pairPrice.textContent = price.toFixed(2);
-                        pairPrice.className = `text-3xl font-bold ${changePct >= 0 ? 'text-green-custom' : 'text-red-custom'} mb-1`;
-                    }
-                    if(pairUsd) {
-                        pairUsd.innerHTML = '$' + price.toFixed(2) + ` <span class="${changePct >= 0 ? 'text-green-custom' : 'text-red-custom'} ml-1">${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%</span>`;
-                    }
-                    
-                    if(statHigh) statHigh.textContent = high.toFixed(2);
-                    if(statLow) statLow.textContent = low.toFixed(2);
-                    if(statVolBTC) statVolBTC.textContent = vol.toFixed(3);
-                    if(statVolUSDT) statVolUSDT.textContent = (qVol / 1000000).toFixed(2) + 'M';
-                    
-                    if (modalPrice && orderModal && !orderModal.classList.contains('hidden')) {
-                        modalPrice.textContent = price.toFixed(2);
-                    }
-                });
-            }
+                        if(pairPrice) {
+                            pairPrice.textContent = price.toFixed(2);
+                            pairPrice.className = `text-3xl font-bold ${changePct >= 0 ? 'text-green-custom' : 'text-red-custom'} mb-1`;
+                        }
+                        if(pairUsd) {
+                            pairUsd.innerHTML = '$' + price.toFixed(2) + ` <span class="${changePct >= 0 ? 'text-green-custom' : 'text-red-custom'} ml-1">${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%</span>`;
+                        }
+                        
+                        if(statHigh) statHigh.textContent = high.toFixed(2);
+                        if(statLow) statLow.textContent = low.toFixed(2);
+                        if(statVolBTC) statVolBTC.textContent = vol.toFixed(3);
+                        if(statVolUSDT) statVolUSDT.textContent = (qVol / 1000000).toFixed(2) + 'M';
+                        
+                        if (modalPrice && orderModal && !orderModal.classList.contains('hidden')) {
+                            modalPrice.textContent = price.toFixed(2);
+                        }
+                    });
+                }
+            } catch(e) { console.error("WS Parse Error", e); }
         };
 
         ws.onerror = (e) => {

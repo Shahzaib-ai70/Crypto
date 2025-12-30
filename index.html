@@ -595,8 +595,8 @@
             // If already connected, do nothing
             if(ws && ws.readyState === WebSocket.OPEN) return;
 
-            // Connect to Binance Stream
-            ws = new WebSocket('wss://stream.binance.com:9443/ws');
+            // Connect to Binance Stream (port 443 default for better firewall traversal)
+            ws = new WebSocket('wss://stream.binance.com/ws');
             
             ws.onopen = () => {
                 // Subscribe to all target symbols
@@ -609,20 +609,20 @@
             };
 
             ws.onmessage = (event) => {
-                const msg = JSON.parse(event.data);
-                
-                // Handle ticker update
-                // Msg format: {e: "24hrTicker", s: "BTCUSDT", c: "lastPrice", P: "percentChange", ...}
-                if(msg.e === '24hrTicker' && marketData[msg.s]) {
-                    marketData[msg.s].lastPrice = parseFloat(msg.c);
-                    marketData[msg.s].priceChangePercent = parseFloat(msg.P);
+                try {
+                    const msg = JSON.parse(event.data);
                     
-                    // Efficiently re-render only if needed, or just throttle this if it's too fast.
-                    // For now, direct render is fine as browser handles it well for 16 items.
-                    requestAnimationFrame(() => {
-                        renderList(TARGET_SYMBOLS.map(s => marketData[s]).filter(Boolean));
-                    });
-                }
+                    // Handle ticker update
+                    // Msg format: {e: "24hrTicker", s: "BTCUSDT", c: "lastPrice", P: "percentChange", ...}
+                    if(msg.e === '24hrTicker' && marketData[msg.s]) {
+                        marketData[msg.s].lastPrice = parseFloat(msg.c);
+                        marketData[msg.s].priceChangePercent = parseFloat(msg.P);
+                        
+                        requestAnimationFrame(() => {
+                            renderList(TARGET_SYMBOLS.map(s => marketData[s]).filter(Boolean));
+                        });
+                    }
+                } catch(e) { console.error(e); }
             };
 
             ws.onerror = (err) => {
@@ -650,7 +650,11 @@
                      }
                  });
                  renderList(TARGET_SYMBOLS.map(s => marketData[s]).filter(Boolean));
-             } catch(e) { console.error(e); }
+             } catch(e) { 
+                 console.error(e); 
+                 // Ensure render even if fetch fails
+                 renderList(TARGET_SYMBOLS.map(s => marketData[s]).filter(Boolean));
+             }
         }
 
         function renderList(data) {

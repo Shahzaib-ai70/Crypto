@@ -162,23 +162,25 @@
             if (ws) ws.close();
 
             wsSymbol = symbol;
-            // Subscribe to combined streams: ticker and depth5
-            ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${symbol}@ticker/${symbol}@depth5`);
+            // Subscribe to combined streams: ticker and depth5 (use port 443)
+            ws = new WebSocket(`wss://stream.binance.com/stream?streams=${symbol}@ticker/${symbol}@depth5`);
 
             ws.onopen = () => {
                 console.log('Connected to WS for ' + symbol);
             };
 
             ws.onmessage = (event) => {
-                const msg = JSON.parse(event.data);
-                const stream = msg.stream;
-                const data = msg.data;
+                try {
+                    const msg = JSON.parse(event.data);
+                    const stream = msg.stream;
+                    const data = msg.data;
 
-                if (stream.endsWith('@ticker')) {
-                    handleTicker(data);
-                } else if (stream.endsWith('@depth5')) {
-                    handleDepth(data);
-                }
+                    if (stream.endsWith('@ticker')) {
+                        handleTicker(data);
+                    } else if (stream.endsWith('@depth5')) {
+                        handleDepth(data);
+                    }
+                } catch(e) { console.error("WS Parse Error", e); }
             };
 
             ws.onerror = (e) => {

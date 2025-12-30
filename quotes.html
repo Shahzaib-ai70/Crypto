@@ -225,7 +225,7 @@
             return window.location.origin;
         }
 
-        const TARGET_SYMBOLS = ["BTCUSDT","ETHUSDT","BNBUSDT","XRPUSDT","SOLUSDT","ADAUSDT","DOGEUSDT","TRXUSDT","LTCUSDT","DOTUSDT","LINKUSDT","SHIBUSDT","AVAXUSDT","BCHUSDT","UNIUSDT","MATICUSDT"];
+        // Use lists.crypto as the source of truth
         
         // Initial state with defaults
         let cryptoData = {
@@ -256,9 +256,12 @@
             }
             if(ws && ws.readyState === WebSocket.OPEN) return;
 
-            ws = new WebSocket('wss://stream.binance.com:9443/ws');
+            // Use wss://stream.binance.com:9443/ws or wss://stream.binance.com/ws
+            // Try port 443 (standard HTTPS) if 9443 is blocked
+            ws = new WebSocket('wss://stream.binance.com/ws');
+            
             ws.onopen = () => {
-                const streams = TARGET_SYMBOLS.map(s => s.toLowerCase() + '@ticker');
+                const streams = lists.crypto.map(s => s.toLowerCase() + '@ticker');
                 ws.send(JSON.stringify({
                     method: "SUBSCRIBE",
                     params: streams,
@@ -266,39 +269,52 @@
                 }));
             };
             ws.onmessage = (event) => {
-                const msg = JSON.parse(event.data);
-                if(msg.e === '24hrTicker' && cryptoData[msg.s]) {
-                    cryptoData[msg.s].lastPrice = parseFloat(msg.c);
-                    cryptoData[msg.s].priceChangePercent = parseFloat(msg.P);
-                    cryptoData[msg.s].volume = parseFloat(msg.v); // Base volume
-                    
-                    prices.set(msg.s, cryptoData[msg.s]);
-                    
-                    requestAnimationFrame(renderList);
-                }
+                try {
+                    const msg = JSON.parse(event.data);
+                    if(msg.e === '24hrTicker' && lists.crypto.includes(msg.s)) {
+                        if(!cryptoData[msg.s]) cryptoData[msg.s] = {};
+                        cryptoData[msg.s].lastPrice = parseFloat(msg.c);
+                        cryptoData[msg.s].priceChangePercent = parseFloat(msg.P);
+                        cryptoData[msg.s].volume = parseFloat(msg.v); 
+                        
+                        prices.set(msg.s, cryptoData[msg.s]);
+                        
+                        requestAnimationFrame(renderList);
+                    }
+                } catch(e) { console.error("WS Parse Error", e); }
             };
             ws.onerror = (e) => {
                 console.error("WS Error", e);
+                // Fallback to REST if WS fails
                 fetchPricesRest();
             };
-            ws.onclose = () => setTimeout(initWebSocket, 5000);
+            ws.onclose = () => {
+                console.log("WS Closed");
+                setTimeout(initWebSocket, 5000);
+            };
         }
 
         async function fetchPricesRest() {
              try {
-                 const symbolsParam = JSON.stringify(TARGET_SYMBOLS);
+                 const symbolsParam = JSON.stringify(lists.crypto);
+                 // Use a no-cors mode if possible or try/catch around it
+                 // Note: 'no-cors' yields opaque response which we can't read, so we must rely on CORS being allowed
                  const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`);
                  if (!res.ok) throw new Error("binance_failed");
                  const allData = await res.json();
                  
                  allData.forEach(d => {
-                     if(TARGET_SYMBOLS.includes(d.symbol)) {
+                     if(lists.crypto.includes(d.symbol)) {
                          cryptoData[d.symbol] = d;
                          prices.set(d.symbol, d);
                      }
                  });
                  renderList();
-             } catch (e) { console.log("Fetch failed", e); }
+             } catch (e) { 
+                 console.log("Fetch failed", e); 
+                 // Ensure we render at least the static data if fetch fails
+                 renderList();
+             }
         }
 
         // Old fetchPrices adapted for other categories
@@ -307,9 +323,11 @@
         }
 
         function renderList() {
-            // Logic handled below but updated to use TARGET_SYMBOLS for crypto
-            const symbols = currentTab === 'crypto' ? TARGET_SYMBOLS : lists[currentTab];
+            // Logic handled below but updated to use lists.crypto for crypto
+            const symbols = currentTab === 'crypto' ? lists.crypto : lists[currentTab];
             const container = document.getElementById('quotesList');
+            if(!container) return;
+            
             const html = symbols.map(s => {
                 const meta = META[s] || {sym: s, bg:"#999", text:s[0]};
                 const data = prices.get(s) || cryptoData[s] || {};
