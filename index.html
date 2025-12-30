@@ -568,64 +568,96 @@
             MATICUSDT: { symbol: "MATICUSDT", lastPrice: 0.85, priceChangePercent: -0.50 }
         };
 
-        // Function to simulate live market ticks (Random Walk)
-        function simulateTicks() {
-            if(currentTab !== 'crypto') return;
-            
-            TARGET_SYMBOLS.forEach(sym => {
-                if(!marketData[sym]) return;
-                
-                // Random walk logic: +/- 0.1% change
-                const price = parseFloat(marketData[sym].lastPrice);
-                const change = parseFloat(marketData[sym].priceChangePercent);
-                
-                // 30% chance to update
-                if(Math.random() > 0.7) {
-                    const move = price * 0.0005 * (Math.random() - 0.5); // 0.05% move
-                    const newPrice = price + move;
-                    marketData[sym].lastPrice = newPrice;
-                    
-                    // Slightly adjust 24h change too
-                    marketData[sym].priceChangePercent = change + (Math.random() - 0.5) * 0.02;
+        // WebSocket for Real-Time Data
+        let ws = null;
+
+        function fetchPrices() {
+            if(currentTab === 'crypto') {
+                initWebSocket();
+            } else {
+                // Close WS if leaving crypto tab
+                if(ws) {
+                    ws.close();
+                    ws = null;
                 }
-            });
-            
-            renderList(TARGET_SYMBOLS.map(s => marketData[s]).filter(Boolean));
+                // For other tabs, we might fetch from REST or show placeholder
+                // Since this task is about Binance API check for crypto, we focus on that.
+                console.log("Switched to " + currentTab);
+            }
         }
 
-        async function fetchPrices() {
-            if(currentTab === 'crypto') {
-                 try {
-                     // Optimized: Fetch only specific symbols to reduce payload size and load time
-                     const symbolsParam = JSON.stringify(TARGET_SYMBOLS);
-                     const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`);
-                     if(!res.ok) throw new Error("API Error");
-                     
-                     const data = await res.json();
-                     
-                     // Update local state with real data
-                     data.forEach(d => {
-                         if(TARGET_SYMBOLS.includes(d.symbol)) {
-                             marketData[d.symbol] = d;
-                         }
-                     });
-                     
-                     // Render immediately after fetch
-                     renderList(TARGET_SYMBOLS.map(s => marketData[s]).filter(Boolean));
-                     
-                 } catch(e) {
-                     console.error("Market data fetch error, using simulation:", e);
-                     // If fetch fails, we just rely on the simulation loop which is already running
-                 }
-            } else {
-                const container = document.getElementById('cryptoList');
-                container.innerHTML = '<div class="text-center py-8 text-gray-400 text-sm">Market closed</div>';
+        function initWebSocket() {
+            if(currentTab !== 'crypto') {
+                if(ws) { ws.close(); ws = null; }
+                return;
             }
+            
+            // If already connected, do nothing
+            if(ws && ws.readyState === WebSocket.OPEN) return;
+
+            // Connect to Binance Stream
+            ws = new WebSocket('wss://stream.binance.com:9443/ws');
+            
+            ws.onopen = () => {
+                // Subscribe to all target symbols
+                const streams = TARGET_SYMBOLS.map(s => s.toLowerCase() + '@ticker');
+                ws.send(JSON.stringify({
+                    method: "SUBSCRIBE",
+                    params: streams,
+                    id: 1
+                }));
+            };
+
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                
+                // Handle ticker update
+                // Msg format: {e: "24hrTicker", s: "BTCUSDT", c: "lastPrice", P: "percentChange", ...}
+                if(msg.e === '24hrTicker' && marketData[msg.s]) {
+                    marketData[msg.s].lastPrice = parseFloat(msg.c);
+                    marketData[msg.s].priceChangePercent = parseFloat(msg.P);
+                    
+                    // Efficiently re-render only if needed, or just throttle this if it's too fast.
+                    // For now, direct render is fine as browser handles it well for 16 items.
+                    requestAnimationFrame(() => {
+                        renderList(TARGET_SYMBOLS.map(s => marketData[s]).filter(Boolean));
+                    });
+                }
+            };
+
+            ws.onerror = (err) => {
+                console.error("WebSocket Error:", err);
+                // Fallback to REST if WS fails
+                fetchPricesRest();
+            };
+            
+            ws.onclose = () => {
+                // Reconnect after 5s if connection lost
+                setTimeout(initWebSocket, 5000);
+            };
+        }
+
+        // Fallback REST fetch (only used if WS fails)
+        async function fetchPricesRest() {
+             try {
+                 const symbolsParam = JSON.stringify(TARGET_SYMBOLS);
+                 const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`);
+                 if(!res.ok) throw new Error("API Error");
+                 const data = await res.json();
+                 data.forEach(d => {
+                     if(TARGET_SYMBOLS.includes(d.symbol)) {
+                         marketData[d.symbol] = d;
+                     }
+                 });
+                 renderList(TARGET_SYMBOLS.map(s => marketData[s]).filter(Boolean));
+             } catch(e) { console.error(e); }
         }
 
         function renderList(data) {
             const container = document.getElementById('cryptoList');
-            container.innerHTML = data.map(item => {
+            // ... (rest of render logic remains same, but let's ensure it's robust)
+            
+            const html = data.map(item => {
                 const lastPrice = parseFloat(item.lastPrice);
                 const change = parseFloat(item.priceChangePercent);
                 const isUp = change >= 0;
@@ -634,17 +666,13 @@
                 const sign = isUp ? '+' : '';
                 const meta = META[item.symbol] || {sym: item.symbol.replace('USDT',''), img: ''};
                 
-                // Format price nicely
                 let priceStr = lastPrice.toFixed(2);
                 if(lastPrice < 1) priceStr = lastPrice.toFixed(4);
                 if(lastPrice < 0.001) priceStr = lastPrice.toFixed(6);
 
-                let iconHtml = '';
-                if(meta.img) {
-                    iconHtml = `<img src="${meta.img}" class="w-8 h-8 rounded-full mr-3" alt="${meta.sym}">`;
-                } else {
-                    iconHtml = `<div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-3 text-xs font-bold">${meta.sym[0]}</div>`;
-                }
+                let iconHtml = meta.img 
+                    ? `<img src="${meta.img}" class="w-8 h-8 rounded-full mr-3" alt="${meta.sym}">`
+                    : `<div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center mr-3 text-xs font-bold">${meta.sym[0]}</div>`;
 
                 return `
                 <div onclick="window.location.href='futures.html?symbol=${item.symbol}'" class="flex items-center justify-between py-3 cursor-pointer hover:bg-gray-50 rounded-xl px-2 transition-colors">
@@ -664,6 +692,8 @@
                 </div>
                 `;
             }).join('');
+            
+            if(container.innerHTML !== html) container.innerHTML = html;
 
             // Update Ticker
             const btc = data.find(d => d.symbol === 'BTCUSDT');
@@ -690,12 +720,11 @@
         // 1. Render initial mock data immediately (Zero loading time)
         renderList(TARGET_SYMBOLS.map(s => marketData[s]).filter(Boolean));
         
-        // 2. Start Simulation Loop (updates every 1s for "Live" feel)
-        setInterval(simulateTicks, 1000);
-
-        // 3. Start Real Data Fetch (updates every 5s to correct the prices)
-        fetchPrices();
-        setInterval(fetchPrices, 5000);
+        // 2. Start WebSocket for Real-Time Data
+        initWebSocket();
+        
+        // 3. Fallback Initial Fetch (just to be safe)
+        fetchPricesRest();
 
     </script>
 </body>

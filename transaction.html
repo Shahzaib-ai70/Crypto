@@ -132,6 +132,8 @@
         let currentPrice = 0;
         let availableUSDT = 0;
         let availableCoin = 0; // Base asset balance
+        let ws = null;
+        let wsSymbol = null;
 
         document.addEventListener('DOMContentLoaded', () => {
             const savedLang = localStorage.getItem('appLanguage') || 'English';
@@ -139,10 +141,118 @@
                 setLanguage(savedLang);
             }
             
+            // Check URL params for symbol
+            const urlParams = new URLSearchParams(window.location.search);
+            const symbolParam = urlParams.get('symbol');
+            if (symbolParam) {
+                currentSymbol = symbolParam;
+                document.getElementById('pairDisplay').textContent = currentSymbol.replace('USDT', '/USDT');
+            }
+
             // Initial Fetch
-            fetchData();
-            setInterval(fetchData, 3000); // Refresh every 3s
+            initWebSocket();
+            fetchUserData();
+            setInterval(fetchUserData, 3000); // Refresh balance every 3s
         });
+
+        function initWebSocket() {
+            const symbol = currentSymbol.toLowerCase();
+            if (ws && wsSymbol === symbol && ws.readyState === WebSocket.OPEN) return;
+
+            if (ws) ws.close();
+
+            wsSymbol = symbol;
+            // Subscribe to combined streams: ticker and depth5
+            ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${symbol}@ticker/${symbol}@depth5`);
+
+            ws.onopen = () => {
+                console.log('Connected to WS for ' + symbol);
+            };
+
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                const stream = msg.stream;
+                const data = msg.data;
+
+                if (stream.endsWith('@ticker')) {
+                    handleTicker(data);
+                } else if (stream.endsWith('@depth5')) {
+                    handleDepth(data);
+                }
+            };
+
+            ws.onerror = (e) => {
+                console.error("WS Error", e);
+            };
+            
+            ws.onclose = () => {
+                console.log("WS Closed");
+                setTimeout(initWebSocket, 3000);
+            };
+        }
+
+        function handleTicker(ticker) {
+            currentPrice = parseFloat(ticker.c);
+            const changeEl = document.getElementById('changeDisplay');
+            const chg = parseFloat(ticker.P);
+            const color = chg >= 0 ? "text-green-custom bg-green-50" : "text-red-custom bg-red-50";
+            const sign = chg >= 0 ? "+" : "";
+            
+            changeEl.className = `${color} px-2 py-0.5 rounded text-xs`;
+            changeEl.textContent = `${sign}${chg.toFixed(2)}%`;
+            
+            // Update input price if empty
+            const inputPrice = document.getElementById('inputPrice');
+            if (!inputPrice.value && document.activeElement !== inputPrice) {
+                inputPrice.value = currentPrice.toFixed(2);
+            }
+        }
+
+        function handleDepth(depth) {
+             const container = document.getElementById('orderBook');
+             if (!depth.bids || !depth.asks) return;
+
+             const asks = depth.asks.slice().reverse(); // depth5 returns 5 items
+             const bids = depth.bids;
+
+             let html = '';
+             // Asks (Red) - Sell orders
+             asks.forEach(ask => {
+                 const px = parseFloat(ask[0]).toFixed(2);
+                 const amt = parseFloat(ask[1]).toFixed(4);
+                 html += `
+                     <div class="flex justify-between text-xs">
+                         <span class="text-red-custom">${px}</span>
+                         <span class="text-gray-500">${amt}</span>
+                     </div>
+                 `;
+             });
+
+             // Center Price
+             // We use currentPrice from ticker if available, or calculate from mid market
+             const displayPrice = currentPrice || (parseFloat(asks[asks.length-1]?.[0]) + parseFloat(bids[0]?.[0])) / 2;
+             
+             html += `
+                <div class="py-2 text-center">
+                    <span class="text-lg font-bold ${currentPrice >= parseFloat(asks[asks.length-1]?.[0] || 0) ? 'text-green-custom' : 'text-red-custom'}">${displayPrice.toFixed(2)}</span>
+                    <div class="text-[10px] text-gray-400">≈ $${displayPrice.toFixed(2)}</div>
+                </div>
+            `;
+
+             // Bids (Green) - Buy orders
+             bids.forEach(bid => {
+                 const px = parseFloat(bid[0]).toFixed(2);
+                 const amt = parseFloat(bid[1]).toFixed(4);
+                 html += `
+                     <div class="flex justify-between text-xs">
+                         <span class="text-green-custom">${px}</span>
+                         <span class="text-gray-500">${amt}</span>
+                     </div>
+                 `;
+             });
+             
+             container.innerHTML = html;
+        }
 
         function setSide(side) {
             currentSide = side;
@@ -166,29 +276,9 @@
             }
         }
 
-        async function fetchData() {
+        async function fetchUserData() {
             try {
-                // 1. Get Depth & Ticker
-                const [depthRes, tickerRes, userRes] = await Promise.all([
-                    fetch(`${API_BASE}/depth?symbol=${currentSymbol}`),
-                    fetch(`${API_BASE}/markets?symbols=${currentSymbol}`), // Array
-                    fetch(`${API_BASE}/me`) // User info for balance
-                ]);
-
-                if (depthRes.ok) {
-                    const depth = await depthRes.json();
-                    renderDepth(depth);
-                }
-
-                if (tickerRes.ok) {
-                    const tickers = await tickerRes.json();
-                    const ticker = tickers[0];
-                    if (ticker) {
-                        currentPrice = parseFloat(ticker.lastPrice);
-                        updateTickerDisplay(ticker);
-                    }
-                }
-
+                const userRes = await fetch(`${API_BASE}/me`);
                 if (userRes.ok) {
                     const user = await userRes.json();
                     if (user) {
@@ -211,74 +301,12 @@
                         }
                     }
                 }
-
             } catch (e) {
                 console.error("Fetch error:", e);
             }
         }
 
-        function renderDepth(depth) {
-            const container = document.getElementById('orderBook');
-            if (!depth || !depth.bids || !depth.asks) return;
 
-            // Take top 5 asks (sell orders) - Reverse order to show lowest ask at bottom
-            const asks = depth.asks.slice(0, 5).reverse(); 
-            // Take top 5 bids (buy orders)
-            const bids = depth.bids.slice(0, 5);
-
-            let html = '';
-
-            // Asks (Red)
-            asks.forEach(ask => {
-                const px = parseFloat(ask[0]).toFixed(2);
-                const amt = parseFloat(ask[1]).toFixed(4);
-                html += `
-                    <div class="flex justify-between text-xs">
-                        <span class="text-red-custom">${px}</span>
-                        <span class="text-gray-500">${amt}</span>
-                    </div>
-                `;
-            });
-
-            // Current Price Middle
-            html += `
-                <div class="py-2 text-center">
-                    <span class="text-lg font-bold ${currentPrice >= parseFloat(asks[asks.length-1]?.[0] || 0) ? 'text-green-custom' : 'text-red-custom'}">${currentPrice.toFixed(2)}</span>
-                    <div class="text-[10px] text-gray-400">≈ $${currentPrice.toFixed(2)}</div>
-                </div>
-            `;
-
-            // Bids (Green)
-            bids.forEach(bid => {
-                const px = parseFloat(bid[0]).toFixed(2);
-                const amt = parseFloat(bid[1]).toFixed(4);
-                html += `
-                    <div class="flex justify-between text-xs">
-                        <span class="text-green-custom">${px}</span>
-                        <span class="text-gray-500">${amt}</span>
-                    </div>
-                `;
-            });
-
-            container.innerHTML = html;
-        }
-
-        function updateTickerDisplay(ticker) {
-            const changeEl = document.getElementById('changeDisplay');
-            
-            const chg = parseFloat(ticker.priceChangePercent);
-            const color = chg >= 0 ? "text-green-custom bg-green-50" : "text-red-custom bg-red-50";
-            const sign = chg >= 0 ? "+" : "";
-            
-            changeEl.className = `${color} px-2 py-0.5 rounded text-xs`;
-            changeEl.textContent = `${sign}${chg.toFixed(2)}%`;
-            
-            // Also update input price if empty
-            const inputPrice = document.getElementById('inputPrice');
-            if (!inputPrice.value) {
-                inputPrice.value = parseFloat(ticker.lastPrice).toFixed(2);
-            }
-        }
 
         function setPercent(pct) {
             const inputAmount = document.getElementById('inputAmount');
@@ -328,7 +356,7 @@
                     alert(data.error);
                 } else {
                     alert("Order placed successfully!");
-                    fetchData(); // Refresh balances
+                    fetchUserData(); // Refresh balances
                 }
             } catch (e) {
                 alert("Order failed: " + e.message);

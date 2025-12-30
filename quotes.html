@@ -247,52 +247,63 @@
             MATICUSDT: { symbol: "MATICUSDT", lastPrice: 0.85, priceChangePercent: -0.50 }
         };
 
-        function simulateTicks() {
-            if(currentTab !== 'crypto') return;
-            
-            TARGET_SYMBOLS.forEach(sym => {
-                if(!cryptoData[sym]) return;
-                
-                // Random walk logic
-                const price = parseFloat(cryptoData[sym].lastPrice);
-                const change = parseFloat(cryptoData[sym].priceChangePercent);
-                
-                if(Math.random() > 0.7) {
-                    const move = price * 0.0005 * (Math.random() - 0.5); 
-                    const newPrice = price + move;
-                    cryptoData[sym].lastPrice = newPrice;
-                    cryptoData[sym].priceChangePercent = change + (Math.random() - 0.5) * 0.02;
+        // WebSocket for Crypto
+        let ws = null;
+        function initWebSocket() {
+            if(currentTab !== 'crypto') {
+                if(ws) { ws.close(); ws = null; }
+                return;
+            }
+            if(ws && ws.readyState === WebSocket.OPEN) return;
+
+            ws = new WebSocket('wss://stream.binance.com:9443/ws');
+            ws.onopen = () => {
+                const streams = TARGET_SYMBOLS.map(s => s.toLowerCase() + '@ticker');
+                ws.send(JSON.stringify({
+                    method: "SUBSCRIBE",
+                    params: streams,
+                    id: 1
+                }));
+            };
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                if(msg.e === '24hrTicker' && cryptoData[msg.s]) {
+                    cryptoData[msg.s].lastPrice = parseFloat(msg.c);
+                    cryptoData[msg.s].priceChangePercent = parseFloat(msg.P);
+                    cryptoData[msg.s].volume = parseFloat(msg.v); // Base volume
                     
-                    prices.set(sym, cryptoData[sym]);
-                } else {
-                    // Ensure map is populated
-                    prices.set(sym, cryptoData[sym]);
+                    prices.set(msg.s, cryptoData[msg.s]);
+                    
+                    requestAnimationFrame(renderList);
                 }
-            });
-            renderList();
+            };
+            ws.onerror = (e) => {
+                console.error("WS Error", e);
+                fetchPricesRest();
+            };
+            ws.onclose = () => setTimeout(initWebSocket, 5000);
         }
 
-        async function fetchPrices(category) {
-            if (category === 'crypto') {
-                try {
-                    // Fetch specific symbols for speed
-                    const symbolsParam = JSON.stringify(TARGET_SYMBOLS);
-                    const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`);
-                    if (!res.ok) throw new Error("binance_failed");
-                    const allData = await res.json();
-                    
-                    allData.forEach(d => {
-                        if(TARGET_SYMBOLS.includes(d.symbol)) {
-                            cryptoData[d.symbol] = d;
-                            prices.set(d.symbol, d);
-                        }
-                    });
-                } catch (e) {
-                    console.log("Fetch failed, using simulation", e);
-                }
-            } else {
-                updateMockData(category);
-            }
+        async function fetchPricesRest() {
+             try {
+                 const symbolsParam = JSON.stringify(TARGET_SYMBOLS);
+                 const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${symbolsParam}`);
+                 if (!res.ok) throw new Error("binance_failed");
+                 const allData = await res.json();
+                 
+                 allData.forEach(d => {
+                     if(TARGET_SYMBOLS.includes(d.symbol)) {
+                         cryptoData[d.symbol] = d;
+                         prices.set(d.symbol, d);
+                     }
+                 });
+                 renderList();
+             } catch (e) { console.log("Fetch failed", e); }
+        }
+
+        // Old fetchPrices adapted for other categories
+        function fetchPricesOther(category) {
+            updateMockData(category);
         }
 
         function renderList() {
@@ -359,16 +370,16 @@
                     </div>
                 </div>`;
             }).join("");
-            container.innerHTML = html;
+            
+            if(container.innerHTML !== html) container.innerHTML = html;
         }
 
         async function refresh() {
             if(currentTab === 'crypto') {
-                simulateTicks(); // Run simulation every tick
-                // Real fetch is handled by interval separately or here sparsely
-                // We'll rely on the main interval for real fetch
+                // WS handles it
+                initWebSocket();
             } else {
-                fetchPrices(currentTab);
+                fetchPricesOther(currentTab);
                 renderList();
             }
         }
@@ -380,19 +391,16 @@
 
         setActive("crypto");
         
-        // Setup intervals
+        // Refresh loop for non-crypto tabs (simulated)
         setInterval(() => {
-            if(currentTab === 'crypto') refresh();
-            else refresh();
-        }, 1000); // 1s simulation/tick
+            if(currentTab !== 'crypto') refresh();
+        }, 1000); 
 
-        // Real data fetch loop for crypto (slower)
-        setInterval(() => {
-            if(currentTab === 'crypto') fetchPrices('crypto');
-        }, 5000);
-        
-        // Initial fetch
-        fetchPrices('crypto');
+        // Initial setup
+        if(currentTab === 'crypto') {
+            fetchPricesRest(); // Immediate fallback data
+            initWebSocket();
+        }
     </script>
 </body>
 </html>
