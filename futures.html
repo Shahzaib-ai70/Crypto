@@ -1053,6 +1053,11 @@
         cdPriceLabel.textContent = 'Estimated income';
         cdBigResult.classList.remove('text-red-600','text-green-600');
         cdModal.classList.remove('hidden');
+        
+        // Hide buttons during trade
+        cdBack.classList.add('hidden');
+        cdContinue.classList.add('hidden');
+
         const total = secs * 10;
         let t = total;
         const circumference = 2 * Math.PI * 45;
@@ -1095,7 +1100,14 @@
                 const base = prices[selectedPair] || 0;
                 const drift = base * (Math.random() - 0.5) * 0.0005;
                 cdSettle.textContent = (base + drift).toFixed(2);
+                
+                // Show buttons after trade completion
+                cdBack.classList.remove('hidden');
+                cdContinue.classList.remove('hidden');
+                
                 pendingTradeRes = null;
+                // Refresh balance
+                fetchUserBalance();
                 return;
             }
             cdText.textContent = (t/10).toFixed(1);
@@ -1106,6 +1118,12 @@
     modalConfirm.addEventListener('click', async () => {
         const amt = parseFloat(modalAmount.value);
         if (!amt || amt < minTradeAmount) {
+            showToast(`Minimum trade amount is ${minTradeAmount} USDT`, 'error');
+            return;
+        }
+        
+        // Check insufficient balance
+        if (amt > currentUserBalance) {
             showToast('Insufficient balance', 'error');
             return;
         }
