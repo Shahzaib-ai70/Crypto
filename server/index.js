@@ -1110,6 +1110,13 @@ app.post("/api/trade", async (req, res) => {
       "UPDATE users SET balance = balance + ? WHERE username=?", [profit, username]
     );
 
+    // Sync user_balances for USDT
+    await db.run(`
+      INSERT INTO user_balances (username, currency, amount) 
+      VALUES (?, 'USDT', ?)
+      ON CONFLICT(username, currency) DO UPDATE SET amount = amount + ?
+    `, [username, profit, profit]);
+
     res.json({
       result: win ? "win" : "lose",
       profit
