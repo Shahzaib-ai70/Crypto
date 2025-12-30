@@ -398,8 +398,9 @@
 
         // Initial setup
         if(currentTab === 'crypto') {
-            fetchPricesRest(); // Immediate fallback data
+            renderList(); // Render immediately with mock data
             initWebSocket();
+            fetchPricesRest(); // Try to get fresh snapshot
         }
     </script>
 </body>
