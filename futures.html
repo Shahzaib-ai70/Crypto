@@ -576,7 +576,86 @@
     let selectedPair = 'BTC/USDT';
     let currentCategory = 'crypto';
 
-    // --- Tab Switching Logic ---
+    const assetLists = {
+        crypto: [
+            'BTC/USDT', 'ETH/USDT', 'LTC/USDT', 'XRP/USDT', 'DOGE/USDT', 'SOL/USDT',
+            'BNB/USDT', 'ADA/USDT', 'MATIC/USDT', 'DOT/USDT', 'AVAX/USDT', 'TRX/USDT',
+            'LINK/USDT', 'ATOM/USDT', 'UNI/USDT', 'ETC/USDT', 'FIL/USDT', 'BCH/USDT'
+        ],
+        stock: ['AAPL', 'TSLA', 'GOOGL', 'AMZN', 'MSFT', 'NFLX', 'NVDA', 'META', 'AMD', 'INTC'],
+        forex: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD', 'USD/CHF', 'NZD/USD'],
+        gold: ['XAU/USD', 'XAG/USD', 'WTI/USD', 'BRENT/USD']
+    };
+
+    // Check URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramSymbol = urlParams.get('symbol');
+    if(paramSymbol) {
+        let found = false;
+        // Try to match against assetLists
+        for(const [cat, list] of Object.entries(assetLists)) {
+             for(const asset of list) {
+                 // Check exact match or unslashed match
+                 if(asset === paramSymbol || asset.replace('/', '') === paramSymbol) {
+                     selectedPair = asset;
+                     currentCategory = cat;
+                     found = true;
+                     break;
+                 }
+             }
+             if(found) break;
+        }
+        
+        if(!found) {
+            // Fallback heuristic if not in lists
+            if(!paramSymbol.includes('/')) {
+                 if(paramSymbol.endsWith('USDT')) {
+                     selectedPair = paramSymbol.replace('USDT', '/USDT');
+                     currentCategory = 'crypto';
+                 } else {
+                     selectedPair = paramSymbol;
+                 }
+            } else {
+                selectedPair = paramSymbol;
+            }
+        }
+         
+         // Update UI title immediately
+         const pairNameEl = document.getElementById('pairName');
+         if(pairNameEl) pairNameEl.textContent = selectedPair;
+         
+         // Update Tab UI
+         const tabs = ['crypto', 'stock', 'forex', 'gold'];
+         tabs.forEach(c => {
+            const t = document.getElementById('tab' + c.charAt(0).toUpperCase() + c.slice(1));
+            if(t) {
+                if(c === currentCategory) {
+                    t.classList.remove('font-medium', 'text-gray-400');
+                    t.classList.add('border-b-2', 'border-yellow-custom', 'font-bold', 'text-gray-800');
+                } else {
+                    t.classList.remove('border-b-2', 'border-yellow-custom', 'font-bold', 'text-gray-800');
+                    t.classList.add('font-medium', 'text-gray-400');
+                }
+            }
+         });
+     }
+ 
+     // --- Tab Switching Logic ---
+    // const tabs = ... (already defined above in my inserted block, but original code defines it below)
+    // Wait, original code: const tabs = ['crypto', 'stock', 'forex', 'gold'];
+    // I should check if I am redeclaring it.
+    
+    // I can just remove 'const' if it's already defined, or move the definition up.
+    // The original code has `const tabs = ...` AFTER my insertion point.
+    // So if I use `tabs` inside the `if`, I need to define it there or before.
+    
+    // Let's look at the context again.
+    // I am inside the script tag. `tabs` is defined later.
+    
+    // I will define `const tabsList = ['crypto', 'stock', 'forex', 'gold'];` inside the if block to avoid conflict, or just move the global `tabs` definition up.
+    
+    // Moving `tabs` definition up is cleaner.
+
     const tabs = ['crypto', 'stock', 'forex', 'gold'];
     tabs.forEach(cat => {
         const el = document.getElementById('tab' + cat.charAt(0).toUpperCase() + cat.slice(1));
@@ -613,20 +692,7 @@
         const dropdown = document.getElementById('pairDropdown');
         dropdown.innerHTML = '';
         
-        let assets = [];
-        if (currentCategory === 'crypto') {
-            assets = [
-                'BTC/USDT', 'ETH/USDT', 'LTC/USDT', 'XRP/USDT', 'DOGE/USDT', 'SOL/USDT',
-                'BNB/USDT', 'ADA/USDT', 'MATIC/USDT', 'DOT/USDT', 'AVAX/USDT', 'TRX/USDT',
-                'LINK/USDT', 'ATOM/USDT', 'UNI/USDT', 'ETC/USDT', 'FIL/USDT', 'BCH/USDT'
-            ];
-        } else if (currentCategory === 'stock') {
-            assets = ['AAPL', 'TSLA', 'GOOGL', 'AMZN', 'MSFT', 'NFLX', 'NVDA', 'META', 'AMD', 'INTC'];
-        } else if (currentCategory === 'forex') {
-            assets = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD', 'USD/CHF', 'NZD/USD'];
-        } else if (currentCategory === 'gold') {
-            assets = ['XAU/USD', 'XAG/USD', 'WTI/USD', 'BRENT/USD'];
-        }
+        const assets = assetLists[currentCategory] || [];
 
         assets.forEach(asset => {
             const btn = document.createElement('button');

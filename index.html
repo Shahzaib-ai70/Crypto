@@ -280,15 +280,15 @@
 
     <!-- Ticker Section -->
     <div class="border-t border-b border-gray-100 py-3 px-4 flex justify-between overflow-x-auto no-scrollbar">
-        <div class="flex flex-col min-w-[30%]">
+        <div class="flex flex-col min-w-[30%] cursor-pointer" onclick="window.location.href='futures.html?symbol=BTCUSDT'">
             <span class="text-xs font-bold text-gray-800">BTC/USDT <span id="tickerBTCChange" class="text-green-custom">--</span></span>
             <span id="tickerBTCPrice" class="text-lg font-bold text-green-custom">--</span>
         </div>
-        <div class="flex flex-col min-w-[30%]">
+        <div class="flex flex-col min-w-[30%] cursor-pointer" onclick="window.location.href='futures.html?symbol=ETHUSDT'">
             <span class="text-xs font-bold text-gray-800">ETH/USDT <span id="tickerETHChange" class="text-green-custom">--</span></span>
             <span id="tickerETHPrice" class="text-lg font-bold text-green-custom">--</span>
         </div>
-        <div class="flex flex-col min-w-[30%]">
+        <div class="flex flex-col min-w-[30%] cursor-pointer" onclick="window.location.href='futures.html?symbol=XRPUSDT'">
             <span class="text-xs font-bold text-gray-800">XRP/USDT <span id="tickerXRPChange" class="text-green-custom">--</span></span>
             <span id="tickerXRPPrice" class="text-lg font-bold text-green-custom">--</span>
         </div>
@@ -986,7 +986,7 @@
                 }
 
                 return `
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between cursor-pointer" onclick="window.location.href='futures.html?symbol=${s}USDT'">
                     <div class="flex items-center w-1/3">
                         ${iconHtml}
                         <div>
