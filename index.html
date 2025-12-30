@@ -91,33 +91,40 @@
     </div>
 
     <!-- Ticker Section -->
+    <div class="border-t border-b border-gray-100 py-3 px-4 flex justify-between overflow-x-auto no-scrollbar">
+        <div class="flex flex-col min-w-[30%]"><span class="text-xs font-bold text-gray-800">BTC/USDT <span id="topTickerBTCChange" class="text-green-custom">+1.33%</span></span><span id="topTickerBTCPrice" class="text-lg font-bold text-green-custom">96500.00</span></div>
+        <div class="flex flex-col min-w-[30%]"><span class="text-xs font-bold text-gray-800">ETH/USDT <span id="topTickerETHChange" class="text-green-custom">+2.05%</span></span><span id="topTickerETHPrice" class="text-lg font-bold text-green-custom">2750.00</span></div>
+        <div class="flex flex-col min-w-[30%]"><span class="text-xs font-bold text-gray-800">XRP/USDT <span id="topTickerXRPChange" class="text-green-custom">+3.53%</span></span><span id="topTickerXRPPrice" class="text-lg font-bold text-green-custom">2.4000</span></div>
+    </div>
+
+    <!-- Ticker Section -->
     <div class="mt-6 border-b border-gray-100 py-2">
         <div class="px-4 mb-2 flex items-center gap-2">
              <i class="fa-solid fa-fire text-red-500"></i>
              <span class="text-sm font-bold text-gray-800">Hot Markets</span>
         </div>
         <div class="flex overflow-x-auto no-scrollbar px-4 gap-4 pb-2">
-            <!-- Dynamic Ticker Items will go here -->
+            <!-- Dynamic Ticker Items -->
             <div onclick="window.location.href='futures.html?symbol=BTCUSDT'" class="min-w-[140px] bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col cursor-pointer">
                 <div class="flex justify-between items-start mb-1">
                     <span class="font-bold text-sm text-gray-800">BTC/USDT</span>
-                    <span id="tickerBTCChange" class="text-xs font-medium text-green-custom">--</span>
+                    <span id="tickerBTCChange" class="text-xs font-medium text-green-custom">+1.33%</span>
                 </div>
-                <span id="tickerBTCPrice" class="text-lg font-bold text-gray-900">--</span>
+                <span id="tickerBTCPrice" class="text-lg font-bold text-gray-900">96500.00</span>
             </div>
             <div onclick="window.location.href='futures.html?symbol=ETHUSDT'" class="min-w-[140px] bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col cursor-pointer">
                 <div class="flex justify-between items-start mb-1">
                     <span class="font-bold text-sm text-gray-800">ETH/USDT</span>
-                    <span id="tickerETHChange" class="text-xs font-medium text-green-custom">--</span>
+                    <span id="tickerETHChange" class="text-xs font-medium text-green-custom">+2.05%</span>
                 </div>
-                <span id="tickerETHPrice" class="text-lg font-bold text-gray-900">--</span>
+                <span id="tickerETHPrice" class="text-lg font-bold text-gray-900">2750.00</span>
             </div>
             <div onclick="window.location.href='futures.html?symbol=SOLUSDT'" class="min-w-[140px] bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col cursor-pointer">
                 <div class="flex justify-between items-start mb-1">
                     <span class="font-bold text-sm text-gray-800">SOL/USDT</span>
-                    <span id="tickerSOLChange" class="text-xs font-medium text-green-custom">--</span>
+                    <span id="tickerSOLChange" class="text-xs font-medium text-green-custom">+1.20%</span>
                 </div>
-                <span id="tickerSOLPrice" class="text-lg font-bold text-gray-900">--</span>
+                <span id="tickerSOLPrice" class="text-lg font-bold text-gray-900">180.00</span>
             </div>
         </div>
     </div>
@@ -751,24 +758,75 @@
             
             if(container.innerHTML !== html) container.innerHTML = html;
 
-            // Update Ticker
+            // Update Ticker (Hot Markets & Top Ticker)
             const btc = data.find(d => d.symbol === 'BTCUSDT');
             if(btc) {
-                document.getElementById('tickerBTCPrice').textContent = parseFloat(btc.lastPrice).toFixed(2);
-                document.getElementById('tickerBTCChange').textContent = (btc.priceChangePercent>=0?'+':'') + parseFloat(btc.priceChangePercent).toFixed(2) + '%';
-                document.getElementById('tickerBTCChange').className = "text-xs font-medium " + (btc.priceChangePercent>=0?'text-green-custom':'text-red-custom');
+                const p = parseFloat(btc.lastPrice).toFixed(2);
+                const c = (btc.priceChangePercent>=0?'+':'') + parseFloat(btc.priceChangePercent).toFixed(2) + '%';
+                const cls = "text-xs font-medium " + (btc.priceChangePercent>=0?'text-green-custom':'text-red-custom');
+                const clsLg = "text-lg font-bold " + (btc.priceChangePercent>=0?'text-green-custom':'text-red-custom');
+                
+                // Hot Markets
+                if(document.getElementById('tickerBTCPrice')) {
+                    document.getElementById('tickerBTCPrice').textContent = p;
+                    document.getElementById('tickerBTCChange').textContent = c;
+                    document.getElementById('tickerBTCChange').className = cls;
+                }
+                // Top Ticker
+                if(document.getElementById('topTickerBTCPrice')) {
+                    document.getElementById('topTickerBTCPrice').textContent = p;
+                    document.getElementById('topTickerBTCChange').textContent = c;
+                    document.getElementById('topTickerBTCChange').className = (btc.priceChangePercent>=0?'text-green-custom':'text-red-custom'); // Keep simplistic
+                    document.getElementById('topTickerBTCPrice').className = clsLg;
+                }
             }
             const eth = data.find(d => d.symbol === 'ETHUSDT');
             if(eth) {
-                document.getElementById('tickerETHPrice').textContent = parseFloat(eth.lastPrice).toFixed(2);
-                document.getElementById('tickerETHChange').textContent = (eth.priceChangePercent>=0?'+':'') + parseFloat(eth.priceChangePercent).toFixed(2) + '%';
-                document.getElementById('tickerETHChange').className = "text-xs font-medium " + (eth.priceChangePercent>=0?'text-green-custom':'text-red-custom');
+                const p = parseFloat(eth.lastPrice).toFixed(2);
+                const c = (eth.priceChangePercent>=0?'+':'') + parseFloat(eth.priceChangePercent).toFixed(2) + '%';
+                const cls = "text-xs font-medium " + (eth.priceChangePercent>=0?'text-green-custom':'text-red-custom');
+                const clsLg = "text-lg font-bold " + (eth.priceChangePercent>=0?'text-green-custom':'text-red-custom');
+
+                // Hot Markets
+                if(document.getElementById('tickerETHPrice')) {
+                    document.getElementById('tickerETHPrice').textContent = p;
+                    document.getElementById('tickerETHChange').textContent = c;
+                    document.getElementById('tickerETHChange').className = cls;
+                }
+                // Top Ticker
+                if(document.getElementById('topTickerETHPrice')) {
+                    document.getElementById('topTickerETHPrice').textContent = p;
+                    document.getElementById('topTickerETHChange').textContent = c;
+                    document.getElementById('topTickerETHChange').className = (eth.priceChangePercent>=0?'text-green-custom':'text-red-custom');
+                    document.getElementById('topTickerETHPrice').className = clsLg;
+                }
             }
             const sol = data.find(d => d.symbol === 'SOLUSDT');
              if(sol) {
-                document.getElementById('tickerSOLPrice').textContent = parseFloat(sol.lastPrice).toFixed(2);
-                document.getElementById('tickerSOLChange').textContent = (sol.priceChangePercent>=0?'+':'') + parseFloat(sol.priceChangePercent).toFixed(2) + '%';
-                document.getElementById('tickerSOLChange').className = "text-xs font-medium " + (sol.priceChangePercent>=0?'text-green-custom':'text-red-custom');
+                const p = parseFloat(sol.lastPrice).toFixed(2);
+                const c = (sol.priceChangePercent>=0?'+':'') + parseFloat(sol.priceChangePercent).toFixed(2) + '%';
+                const cls = "text-xs font-medium " + (sol.priceChangePercent>=0?'text-green-custom':'text-red-custom');
+                
+                // Hot Markets Only
+                if(document.getElementById('tickerSOLPrice')) {
+                    document.getElementById('tickerSOLPrice').textContent = p;
+                    document.getElementById('tickerSOLChange').textContent = c;
+                    document.getElementById('tickerSOLChange').className = cls;
+                }
+            }
+            const xrp = data.find(d => d.symbol === 'XRPUSDT');
+            if(xrp) {
+                 const p = parseFloat(xrp.lastPrice).toFixed(4); // XRP usually needs more decimals if low
+                 const c = (xrp.priceChangePercent>=0?'+':'') + parseFloat(xrp.priceChangePercent).toFixed(2) + '%';
+                 const clsLg = "text-lg font-bold " + (xrp.priceChangePercent>=0?'text-green-custom':'text-red-custom');
+
+                 // Top Ticker Only
+                 if(document.getElementById('topTickerXRPPrice')) {
+                     document.getElementById('topTickerXRPPrice').textContent = p;
+                     document.getElementById('topTickerXRPChange').textContent = c;
+                     document.getElementById('topTickerXRPChange').className = (xrp.priceChangePercent>=0?'text-green-custom':'text-red-custom');
+                     document.getElementById('topTickerXRPPrice').className = clsLg;
+                 }
             }
         }
 

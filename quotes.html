@@ -232,24 +232,24 @@
 
         // Use lists.crypto as the source of truth
         
-        // Initial state - Reset to 0/Loading to avoid fake static data
+        // Initial state - Pre-filled with backup values to ensure immediate display
         let cryptoData = {
-            BTCUSDT: { symbol: "BTCUSDT", lastPrice: 0, priceChangePercent: 0 },
-            ETHUSDT: { symbol: "ETHUSDT", lastPrice: 0, priceChangePercent: 0 },
-            BNBUSDT: { symbol: "BNBUSDT", lastPrice: 0, priceChangePercent: 0 },
-            XRPUSDT: { symbol: "XRPUSDT", lastPrice: 0, priceChangePercent: 0 },
-            SOLUSDT: { symbol: "SOLUSDT", lastPrice: 0, priceChangePercent: 0 },
-            ADAUSDT: { symbol: "ADAUSDT", lastPrice: 0, priceChangePercent: 0 },
-            DOGEUSDT: { symbol: "DOGEUSDT", lastPrice: 0, priceChangePercent: 0 },
-            TRXUSDT: { symbol: "TRXUSDT", lastPrice: 0, priceChangePercent: 0 },
-            LTCUSDT: { symbol: "LTCUSDT", lastPrice: 0, priceChangePercent: 0 },
-            DOTUSDT: { symbol: "DOTUSDT", lastPrice: 0, priceChangePercent: 0 },
-            LINKUSDT: { symbol: "LINKUSDT", lastPrice: 0, priceChangePercent: 0 },
-            SHIBUSDT: { symbol: "SHIBUSDT", lastPrice: 0, priceChangePercent: 0 },
-            AVAXUSDT: { symbol: "AVAXUSDT", lastPrice: 0, priceChangePercent: 0 },
-            BCHUSDT: { symbol: "BCHUSDT", lastPrice: 0, priceChangePercent: 0 },
-            UNIUSDT: { symbol: "UNIUSDT", lastPrice: 0, priceChangePercent: 0 },
-            MATICUSDT: { symbol: "MATICUSDT", lastPrice: 0, priceChangePercent: 0 }
+            BTCUSDT: { symbol: "BTCUSDT", lastPrice: 96500.00, priceChangePercent: 1.33 },
+            ETHUSDT: { symbol: "ETHUSDT", lastPrice: 2750.00, priceChangePercent: 2.05 },
+            BNBUSDT: { symbol: "BNBUSDT", lastPrice: 600.00, priceChangePercent: 0.5 },
+            XRPUSDT: { symbol: "XRPUSDT", lastPrice: 2.40, priceChangePercent: 3.53 },
+            SOLUSDT: { symbol: "SOLUSDT", lastPrice: 180.00, priceChangePercent: 1.2 },
+            ADAUSDT: { symbol: "ADAUSDT", lastPrice: 0.85, priceChangePercent: 0.5 },
+            DOGEUSDT: { symbol: "DOGEUSDT", lastPrice: 0.35, priceChangePercent: 3.7 },
+            TRXUSDT: { symbol: "TRXUSDT", lastPrice: 0.20, priceChangePercent: 0.1 },
+            LTCUSDT: { symbol: "LTCUSDT", lastPrice: 85.00, priceChangePercent: 0.86 },
+            DOTUSDT: { symbol: "DOTUSDT", lastPrice: 7.50, priceChangePercent: 0.5 },
+            LINKUSDT: { symbol: "LINKUSDT", lastPrice: 15.00, priceChangePercent: 1.1 },
+            SHIBUSDT: { symbol: "SHIBUSDT", lastPrice: 0.000025, priceChangePercent: 2.0 },
+            AVAXUSDT: { symbol: "AVAXUSDT", lastPrice: 35.00, priceChangePercent: 1.5 },
+            BCHUSDT: { symbol: "BCHUSDT", lastPrice: 380.00, priceChangePercent: 2.08 },
+            UNIUSDT: { symbol: "UNIUSDT", lastPrice: 10.00, priceChangePercent: 0.5 },
+            MATICUSDT: { symbol: "MATICUSDT", lastPrice: 0.70, priceChangePercent: 0.5 }
         };
 
         // WebSocket for Crypto
