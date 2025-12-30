@@ -32,41 +32,7 @@ app.use(cookieParser());
 // });
 app.use("/admin", express.static(path.join(__dirname, "admin")));
 
-app.get("/api/markets", async (req, res) => {
-  try {
-    const symbols = req.query.symbols
-      ? JSON.parse(req.query.symbols)
-      : [
-          "BTCUSDT","ETHUSDT","BNBUSDT","XRPUSDT","ADAUSDT",
-          "SOLUSDT","DOGEUSDT","TRXUSDT","LTCUSDT","DOTUSDT"
-        ];
-    const url =
-      "https://api.binance.com/api/v3/ticker/24hr?symbols=" +
-      encodeURIComponent(JSON.stringify(symbols));
-    
-    const r = await fetch(url);
-    if (!r.ok) {
-        console.error("Binance API error:", r.status, r.statusText);
-        const text = await r.text();
-        console.error("Response:", text);
-    }
-    const data = await r.json();
-    
-    const markets = Array.isArray(data) ? data.map(m => ({
-      symbol: m.symbol,
-      price: m.lastPrice,
-      changePercent: m.priceChangePercent,
-      high: m.highPrice,
-      low: m.lowPrice,
-      volume: m.volume
-    })) : [];
-    
-    res.json(markets);
-  } catch (e) {
-    console.error("Market fetch failed:", e);
-    res.status(500).json({ error: "market_fetch_failed" });
-  }
-});
+
 
 /* ================= DATABASE ================= */
 let db;
@@ -409,6 +375,17 @@ async function getPrices() {
       ETH: 3600,
       BNB: 600,
       SOL: 150,
+      XRP: 2.5,
+      ADA: 1.2,
+      DOGE: 0.4,
+      TRX: 0.2,
+      LTC: 100,
+      DOT: 10,
+      LINK: 20,
+      SHIB: 0.00003,
+      AVAX: 40,
+      BCH: 400,
+      UNI: 12,
       USDT: 1
     };
   }
@@ -422,28 +399,104 @@ app.get("/api/prices", async (req, res) => {
 // MARKET DATA (24hr ticker)
 app.get("/api/markets", async (req, res) => {
     try {
-        const symbolsParam = req.query.symbols;
+        let symbolsParam = req.query.symbols;
         if (!symbolsParam) return res.json([]);
         
-        // Pass the symbols array directly to Binance API
-        // Binance expects format: symbols=["BTCUSDT","ETHUSDT"]
-        const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbolsParam)}`);
-        
-        if (!response.ok) {
-            console.error("Binance API error:", response.statusText);
-             // If Binance fails, return empty array so frontend doesn't break
-            return res.json([]);
+        // Ensure it's a string (in case of weird parsing)
+        if (typeof symbolsParam !== 'string') {
+             symbolsParam = JSON.stringify(symbolsParam);
         }
+
+        // Try 24hr ticker first (gives price change)
+        const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbolsParam)}`;
         
-        const data = await response.json();
-        
-        // If data is just one object (single symbol requested), wrap in array
-        if (!Array.isArray(data)) {
-            return res.json([data]);
+        try {
+            const r = await fetch(url, {
+                headers: { 'User-Agent': 'Node.js/1.0' }
+            });
+
+            if (r.ok) {
+                const data = await r.json();
+                const markets = Array.isArray(data) ? data : [data];
+                return res.json(markets);
+            } else {
+                console.error("Binance 24hr API error:", r.status);
+            }
+        } catch (e) {
+            console.error("Binance 24hr fetch failed:", e.message);
         }
+
+        // Fallback: CoinCap (Public API, no auth, often works on VPS)
+        try {
+             const rCap = await fetch('https://api.coincap.io/v2/assets?limit=100');
+             if (rCap.ok) {
+                 const json = await rCap.json(); // { data: [...] }
+                 const requestedSymbols = JSON.parse(symbolsParam || "[]");
+                 
+                 // Map CoinCap data to our format
+                 const markets = requestedSymbols.map(sym => {
+                     const base = sym.replace('USDT', '');
+                     const item = json.data.find(d => d.symbol === base);
+                     if (item) {
+                         return {
+                             symbol: sym,
+                             lastPrice: item.priceUsd,
+                             priceChangePercent: item.changePercent24Hr,
+                             volume: item.volumeUsd24Hr
+                         };
+                     }
+                     return null;
+                 }).filter(Boolean);
+                 
+                 if (markets.length > 0) return res.json(markets);
+             }
+        } catch (e) {
+             console.error("CoinCap market fetch failed:", e.message);
+        }
+
+        // Fallback to simple price ticker (lighter, maybe less blocked)
+        try {
+            const urlPrice = `https://api.binance.com/api/v3/ticker/price?symbols=${encodeURIComponent(symbolsParam)}`;
+            const r = await fetch(urlPrice, {
+                headers: { 'User-Agent': 'Node.js/1.0' }
+            });
+            
+            if (r.ok) {
+                const data = await r.json();
+                const items = Array.isArray(data) ? data : [data];
+                // Map to expected format (missing change percent)
+                const markets = items.map(item => ({
+                    symbol: item.symbol,
+                    lastPrice: item.price,
+                    priceChangePercent: "0.00", // Not available in this endpoint
+                    volume: "0"
+                }));
+                return res.json(markets);
+            }
+        } catch (e) {
+            console.error("Binance price fetch failed:", e.message);
+        }
+
+        // FINAL FALLBACK: Return 0.00 for requested symbols to avoid crash
+        const symbols = JSON.parse(symbolsParam || "[]");
+        const fallbackData = symbols.map(s => ({
+            symbol: s,
+            lastPrice: "0.00",
+            priceChangePercent: "0.00",
+            volume: "0"
+        }));
         
-        res.json(data);
+        // Try to fill with some hardcoded data if available
+        const prices = await getPrices(); // Internal helper that has some hardcoded values
+        fallbackData.forEach(item => {
+            const base = item.symbol.replace('USDT', '');
+            if (prices[base]) {
+                item.lastPrice = prices[base].toString();
+            }
+        });
         
+        res.json(fallbackData);
+
     } catch (e) {
         console.error("Market data error:", e);
         res.status(500).json({ error: "Failed to fetch market data" });

@@ -608,8 +608,13 @@
                 currentBalances = d.balances;
                 d.balances.forEach(coin => {
                     if (coin.currency !== 'USDT') { // Avoid double counting if USDT is in balances
-                        const price = currentPrices[coin.currency] || 0;
-                        totalUsdt += coin.amount * price;
+                        let price = parseFloat(currentPrices[coin.currency]);
+                        if (isNaN(price)) price = 0;
+                        
+                        let amount = parseFloat(coin.amount);
+                        if (isNaN(amount)) amount = 0;
+
+                        totalUsdt += amount * price;
                     } else if (d.balance === 0) {
                         // If legacy balance is 0 but user_balances has USDT, use that?
                         // For safety, let's assume legacy balance is the source of truth for USDT for now.
@@ -637,8 +642,13 @@
                 coinListEl.innerHTML = '';
                 d.balances.forEach(coin => {
                     if (coin.amount > 0) {
-                        const price = currentPrices[coin.currency] || 0;
-                        const valueInUsdt = coin.amount * price;
+                        let price = parseFloat(currentPrices[coin.currency]);
+                        if (isNaN(price)) price = 0;
+                        
+                        let amount = parseFloat(coin.amount);
+                        if (isNaN(amount)) amount = 0;
+
+                        const valueInUsdt = amount * price;
                         
                         const item = document.createElement('div');
                         item.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors';

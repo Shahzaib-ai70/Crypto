@@ -789,12 +789,22 @@
                         pairUsd.textContent = '$' + price.toFixed(2);
                         
                         // Update stats
-                        statHigh.textContent = parseFloat(t.highPrice || t.high).toFixed(2);
-                        statLow.textContent = parseFloat(t.lowPrice || t.low).toFixed(2);
-                        statVolBTC.textContent = parseFloat(t.volume).toFixed(3);
+                        let high = parseFloat(t.highPrice || t.high);
+                        if (isNaN(high)) high = price; // fallback to current if high is invalid
+                        statHigh.textContent = high.toFixed(2);
+
+                        let low = parseFloat(t.lowPrice || t.low);
+                        if (isNaN(low)) low = price; // fallback
+                        statLow.textContent = low.toFixed(2);
+
+                        let vol = parseFloat(t.volume);
+                        if (isNaN(vol)) vol = 0;
+                        statVolBTC.textContent = vol.toFixed(3);
+
                         // Use quoteVolume for USDT volume if available
-                        const volUsd = t.quoteVolume ? parseFloat(t.quoteVolume) : (parseFloat(t.volume) * price);
-                        statVolUSDT.textContent = (volUsd / 1000000).toFixed(2) + 'M';
+                        let qVol = parseFloat(t.quoteVolume);
+                        if (isNaN(qVol)) qVol = vol * price;
+                        statVolUSDT.textContent = (qVol / 1000000).toFixed(2) + 'M';
 
                         // Update global prices object for modal
                         prices[selectedPair] = price;

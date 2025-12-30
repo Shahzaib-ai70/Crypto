@@ -248,9 +248,14 @@
             const html = symbols.map(s => {
                 const meta = META[s] || {sym: s, bg:"#999", text:s[0]};
                 const data = prices.get(s) || {};
-                const last = data.lastPrice ? parseFloat(data.lastPrice) : 0;
-                const vol = data.volume ? parseFloat(data.volume) : 0;
-                const chg = data.priceChangePercent ? parseFloat(data.priceChangePercent) : 0;
+                let last = parseFloat(data.lastPrice);
+                if (isNaN(last)) last = 0;
+                
+                let vol = parseFloat(data.volume);
+                if (isNaN(vol)) vol = 0;
+                
+                let chg = parseFloat(data.priceChangePercent);
+                if (isNaN(chg)) chg = 0;
                 
                 const chgColor = chg >= 0 ? "bg-green-custom" : "bg-red-500";
                 const chgSign = chg >= 0 ? "+" : "";
