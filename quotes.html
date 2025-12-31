@@ -120,7 +120,7 @@
         };
 
         const lists = {
-            crypto: ["BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "SOLUSDT", "ADAUSDT", "DOGEUSDT", "TRXUSDT", "LTCUSDT", "DOTUSDT", "LINKUSDT", "SHIBUSDT", "AVAXUSDT", "BCHUSDT", "UNIUSDT"],
+            crypto: ["BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "SOLUSDT", "ADAUSDT", "DOGEUSDT", "TRXUSDT", "LTCUSDT", "DOTUSDT", "LINKUSDT", "SHIBUSDT", "AVAXUSDT", "BCHUSDT", "UNIUSDT", "MATICUSDT"],
             stock: ["AAPL", "TSLA", "GOOGL", "AMZN", "MSFT", "NVDA", "META", "NFLX"],
             forex: ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD"],
             gold: ["XAUUSD", "XAGUSD"]
@@ -143,6 +143,7 @@
             AVAXUSDT: {sym: "AVAX", img: "https://assets.coincap.io/assets/icons/avax@2x.png"},
             BCHUSDT: {sym: "BCH", img: "https://assets.coincap.io/assets/icons/bch@2x.png"},
             UNIUSDT: {sym: "UNI", img: "https://assets.coincap.io/assets/icons/uni@2x.png"},
+            MATICUSDT: {sym: "MATIC", img: "https://assets.coincap.io/assets/icons/matic@2x.png"},
             // Stock
             AAPL: {sym: "AAPL", bg: "#000000", icon: "fa-brands fa-apple"},
             TSLA: {sym: "TSLA", bg: "#cc0000", text: "T"},
@@ -219,38 +220,117 @@
         }
 
         function getApiBase() {
-            // Per VPS requirements: Always use relative path or window.location.origin
-            // NGINX handles proxying /api to the backend
-            return window.location.origin;
+            // For VPS/Production: use relative path if on same domain
+            if (window.location.protocol === 'file:') {
+                 // Only for local testing without server
+                 return 'http://localhost:3001';
+            }
+            // For production (VPS), return empty string to use relative path '/api'
+            // or window.location.origin if preferred. Relative is safest for proxying.
+            return ''; 
         }
 
-        async function fetchPrices(category) {
-            if (category === 'crypto') {
-                const symbols = lists.crypto;
-                try {
-                    const urlBackend = "/api/markets?symbols=" + encodeURIComponent(JSON.stringify(symbols));
-                    const res = await fetch(getApiBase() + urlBackend);
-                    if (!res.ok) throw new Error("backend_failed");
-                    const json = await res.json();
-                    json.forEach(item => prices.set(item.symbol, item));
-                } catch (e) {
-                    // Fallback handled by previous state or silent fail
-                    console.log("Fetch failed", e);
-                }
-            } else {
-                updateMockData(category);
+        // Use lists.crypto as the source of truth
+        
+        // Initial state - Keys only, values will be fetched
+        let cryptoData = {};
+        lists.crypto.forEach(s => {
+            cryptoData[s] = { symbol: s, lastPrice: 0, priceChangePercent: 0 };
+        });
+
+        // WebSocket for Crypto
+        let ws = null;
+        function initWebSocket() {
+            if(currentTab !== 'crypto') {
+                if(ws) { ws.close(); ws = null; }
+                return;
             }
+            if(ws && ws.readyState === WebSocket.OPEN) return;
+
+            // Immediate initial fetch
+            fetchPricesRest();
+
+            // Use Combined Streams for reliability (port 443)
+            const streams = lists.crypto.map(s => s.toLowerCase() + '@ticker').join('/');
+            ws = new WebSocket(`wss://stream.binance.com/stream?streams=${streams}`);
+            
+            ws.onopen = () => {
+                console.log("Connected to Binance Stream (Quotes)");
+            };
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    // msg format: { stream: "btcusdt@ticker", data: { ... } }
+                    const data = msg.data;
+
+                    if(data && data.e === '24hrTicker' && lists.crypto.includes(data.s)) {
+                        if(!cryptoData[data.s]) cryptoData[data.s] = {};
+                        cryptoData[data.s].lastPrice = parseFloat(data.c);
+                        cryptoData[data.s].priceChangePercent = parseFloat(data.P);
+                        cryptoData[data.s].volume = parseFloat(data.v); 
+                        
+                        prices.set(data.s, cryptoData[data.s]);
+                        
+                        requestAnimationFrame(renderList);
+                    }
+                } catch(e) { console.error("WS Parse Error", e); }
+            };
+            ws.onerror = (e) => {
+                console.error("WS Error", e);
+                // Fallback to REST if WS fails
+                fetchPricesRest();
+            };
+            ws.onclose = () => {
+                console.log("WS Closed");
+                setTimeout(initWebSocket, 5000);
+            };
+        }
+
+        async function fetchPricesRest() {
+             try {
+                 const symbolsParam = JSON.stringify(lists.crypto);
+                 // Fetch from Backend /api/markets
+                 const url = `${window.location.origin}/api/markets?symbols=${encodeURIComponent(symbolsParam)}`;
+                 const res = await fetch(url);
+                 if (!res.ok) throw new Error("Backend API Failed");
+                 const allData = await res.json();
+                 
+                 if(Array.isArray(allData)) {
+                    allData.forEach(d => {
+                        if(d && d.symbol && lists.crypto.includes(d.symbol)) {
+                            cryptoData[d.symbol] = d;
+                            prices.set(d.symbol, d);
+                        }
+                    });
+                    renderList();
+                 }
+             } catch (e) { 
+                 console.log("Backend fetch failed:", e); 
+             }
+        }
+
+        // Old fetchPrices adapted for other categories
+        function fetchPricesOther(category) {
+            updateMockData(category);
         }
 
         function renderList() {
-            const symbols = lists[currentTab];
+            // Logic handled below but updated to use lists.crypto for crypto
+            const symbols = currentTab === 'crypto' ? lists.crypto : lists[currentTab];
             const container = document.getElementById('quotesList');
+            if(!container) return;
+            
             const html = symbols.map(s => {
                 const meta = META[s] || {sym: s, bg:"#999", text:s[0]};
-                const data = prices.get(s) || {};
-                const last = data.lastPrice ? parseFloat(data.lastPrice) : 0;
-                const vol = data.volume ? parseFloat(data.volume) : 0;
-                const chg = data.priceChangePercent ? parseFloat(data.priceChangePercent) : 0;
+                const data = prices.get(s) || cryptoData[s] || {};
+                let last = parseFloat(data.lastPrice);
+                if (isNaN(last)) last = 0;
+                
+                let vol = parseFloat(data.volume);
+                if (isNaN(vol)) vol = 0;
+                
+                let chg = parseFloat(data.priceChangePercent);
+                if (isNaN(chg)) chg = 0;
                 
                 const chgColor = chg >= 0 ? "bg-green-custom" : "bg-red-500";
                 const chgSign = chg >= 0 ? "+" : "";
@@ -261,6 +341,9 @@
                     if (last < 1) lastStr = last.toFixed(4);
                     else if (last < 10) lastStr = last.toFixed(3);
                     else lastStr = last.toFixed(2);
+                    
+                    // For SHIB or small coins
+                    if(last < 0.001) lastStr = last.toFixed(6);
                 }
 
                 const volStr = vol ? vol.toLocaleString(undefined,{maximumFractionDigits:0}) : "0";
@@ -276,7 +359,7 @@
                 }
 
                 return `
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between cursor-pointer" onclick="window.location.href='futures.html?symbol=${s}'">
                     <div class="flex items-center w-1/3">
                         ${iconHtml}
                         <div>
@@ -297,12 +380,18 @@
                     </div>
                 </div>`;
             }).join("");
-            container.innerHTML = html;
+            
+            if(container.innerHTML !== html) container.innerHTML = html;
         }
 
         async function refresh() {
-            await fetchPrices(currentTab);
-            renderList();
+            if(currentTab === 'crypto') {
+                // WS handles it
+                initWebSocket();
+            } else {
+                fetchPricesOther(currentTab);
+                renderList();
+            }
         }
 
         tabs.crypto.addEventListener("click", () => setActive("crypto"));
@@ -311,7 +400,18 @@
         tabs.gold.addEventListener("click", () => setActive("gold"));
 
         setActive("crypto");
-        setInterval(refresh, 2000); // 2 seconds refresh for "live" feel
+        
+        // Refresh loop for non-crypto tabs (simulated)
+        setInterval(() => {
+            if(currentTab !== 'crypto') refresh();
+        }, 1000); 
+
+        // Initial setup
+        if(currentTab === 'crypto') {
+            renderList(); // Render immediately with mock data
+            initWebSocket();
+            fetchPricesRest(); // Try to get fresh snapshot
+        }
     </script>
 </body>
 </html>

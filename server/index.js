@@ -25,48 +25,14 @@ app.use(cookieParser());
    NGINX serves frontend on port 80.
    Node.js serves API on port 3001 (Internal).
 */
-// const rootDir = path.join(__dirname, "..");
-// app.use(express.static(rootDir));
-// app.get("/", (req, res) => {
-//   res.sendFile(path.join(rootDir, "index.html"));
-// });
+const rootDir = path.join(__dirname, "..");
+app.use(express.static(rootDir));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(rootDir, "index.html"));
+});
 app.use("/admin", express.static(path.join(__dirname, "admin")));
 
-app.get("/api/markets", async (req, res) => {
-  try {
-    const symbols = req.query.symbols
-      ? JSON.parse(req.query.symbols)
-      : [
-          "BTCUSDT","ETHUSDT","BNBUSDT","XRPUSDT","ADAUSDT",
-          "SOLUSDT","DOGEUSDT","TRXUSDT","LTCUSDT","DOTUSDT"
-        ];
-    const url =
-      "https://api.binance.com/api/v3/ticker/24hr?symbols=" +
-      encodeURIComponent(JSON.stringify(symbols));
-    
-    const r = await fetch(url);
-    if (!r.ok) {
-        console.error("Binance API error:", r.status, r.statusText);
-        const text = await r.text();
-        console.error("Response:", text);
-    }
-    const data = await r.json();
-    
-    const markets = Array.isArray(data) ? data.map(m => ({
-      symbol: m.symbol,
-      price: m.lastPrice,
-      changePercent: m.priceChangePercent,
-      high: m.highPrice,
-      low: m.lowPrice,
-      volume: m.volume
-    })) : [];
-    
-    res.json(markets);
-  } catch (e) {
-    console.error("Market fetch failed:", e);
-    res.status(500).json({ error: "market_fetch_failed" });
-  }
-});
+
 
 /* ================= DATABASE ================= */
 let db;
@@ -171,13 +137,22 @@ async function initDb() {
     } catch (e) {
       // Ignore if exists
     }
+
+    // Migration for invitation_code
+    try {
+        await db.run("ALTER TABLE users ADD COLUMN invitation_code TEXT");
+    } catch(e) {}
 }
 
 /* ================= AUTH APIs ================= */
 
 // REGISTER
 app.post("/api/register", async (req, res) => {
-  const { username, password } = req.body;
+  const { email, password, invitationCode } = req.body;
+
+  // We use 'email' as the 'username' in the database to maintain compatibility
+  // with existing tables that reference 'username'.
+  const username = email; 
 
   if (!username || !password) {
     return res.status(400).json({ error: "Missing fields" });
@@ -190,19 +165,26 @@ app.post("/api/register", async (req, res) => {
     // to match "like before" request, although it seems like a bug.
     // If you want to fix auth, uncomment the password field below.
     await db.run(`
-      INSERT INTO users (username, balance)
-      VALUES (?, ?)
-    `, [username, 0]);
+      INSERT INTO users (username, balance, invitation_code)
+      VALUES (?, ?, ?)
+    `, [username, 0, invitationCode || null]);
 
-    res.json({ success: true });
+    // Auto-login after registration
+    res.cookie("user", username, {
+      httpOnly: true,
+      sameSite: "lax"
+    });
+
+    res.json({ success: true, username: username });
   } catch (e) {
-    res.status(400).json({ error: "Username already exists" });
+    res.status(400).json({ error: "Email already registered" });
   }
 });
 
 // LOGIN
 app.post("/api/login", async (req, res) => {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
+  const username = email; // Map email to username
 
   const user = await db.get(
     "SELECT * FROM users WHERE username=?", [username]
@@ -405,10 +387,31 @@ async function getPrices() {
     console.error("Failed to fetch prices:", e);
     // Fallback
     return {
-      BTC: 95000,
-      ETH: 3600,
-      BNB: 600,
-      SOL: 150,
+      BTC: 96500,
+      ETH: 3700,
+      BNB: 620,
+      SOL: 155,
+      XRP: 2.45,
+      ADA: 1.15,
+      DOGE: 0.38,
+      TRX: 0.22,
+      LTC: 105,
+      DOT: 9.5,
+      LINK: 21,
+      SHIB: 0.000032,
+      AVAX: 42,
+      BCH: 410,
+      UNI: 12.5,
+      MATIC: 0.65,
+      XLM: 0.45,
+      ETC: 32,
+      FIL: 9,
+      NEAR: 7.5,
+      APT: 15,
+      ARB: 1.8,
+      OP: 3.5,
+      PEPE: 0.00001,
+      FLOKI: 0.0002,
       USDT: 1
     };
   }
@@ -422,31 +425,189 @@ app.get("/api/prices", async (req, res) => {
 // MARKET DATA (24hr ticker)
 app.get("/api/markets", async (req, res) => {
     try {
-        const symbolsParam = req.query.symbols;
+        let symbolsParam = req.query.symbols;
         if (!symbolsParam) return res.json([]);
         
-        // Pass the symbols array directly to Binance API
-        // Binance expects format: symbols=["BTCUSDT","ETHUSDT"]
-        const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbolsParam)}`);
-        
-        if (!response.ok) {
-            console.error("Binance API error:", response.statusText);
-             // If Binance fails, return empty array so frontend doesn't break
-            return res.json([]);
+        // Ensure it's a string (in case of weird parsing)
+        if (typeof symbolsParam !== 'string') {
+             symbolsParam = JSON.stringify(symbolsParam);
         }
+
+        // Try 24hr ticker first (gives price change)
+        const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbolsParam)}`;
         
-        const data = await response.json();
-        
-        // If data is just one object (single symbol requested), wrap in array
-        if (!Array.isArray(data)) {
-            return res.json([data]);
+        try {
+            const r = await fetch(url, {
+                headers: { 'User-Agent': 'Node.js/1.0' }
+            });
+
+            if (r.ok) {
+                const data = await r.json();
+                const markets = Array.isArray(data) ? data : [data];
+                return res.json(markets);
+            } else {
+                console.error("Binance 24hr API error:", r.status);
+            }
+        } catch (e) {
+            console.error("Binance 24hr fetch failed:", e.message);
         }
+
+        // Fallback: CoinGecko (Very reliable public API)
+        try {
+             const geckoUrl = `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,binancecoin,ripple,solana,cardano,dogecoin,tron,litecoin,polkadot,chainlink,shiba-inu,avalanche-2,bitcoin-cash,uniswap,matic-network,stellar,ethereum-classic,filecoin,near,aptos,arbitrum,optimism,pepe,floki&vs_currencies=usd&include_24hr_change=true`;
+             const rGecko = await fetch(geckoUrl);
+             if (rGecko.ok) {
+                 const geckoData = await rGecko.json();
+                 // Map: symbol -> geckoId
+                 const mapSym = {
+                     'BTCUSDT': 'bitcoin', 'ETHUSDT': 'ethereum', 'BNBUSDT': 'binancecoin',
+                     'XRPUSDT': 'ripple', 'SOLUSDT': 'solana', 'ADAUSDT': 'cardano',
+                     'DOGEUSDT': 'dogecoin', 'TRXUSDT': 'tron', 'LTCUSDT': 'litecoin',
+                     'DOTUSDT': 'polkadot', 'LINKUSDT': 'chainlink', 'SHIBUSDT': 'shiba-inu',
+                     'AVAXUSDT': 'avalanche-2', 'BCHUSDT': 'bitcoin-cash', 'UNIUSDT': 'uniswap',
+                     'MATICUSDT': 'matic-network', 'XLMUSDT': 'stellar', 'ETCUSDT': 'ethereum-classic',
+                     'FILUSDT': 'filecoin', 'NEARUSDT': 'near', 'APTUSDT': 'aptos',
+                     'ARBUSDT': 'arbitrum', 'OPUSDT': 'optimism', 'PEPEUSDT': 'pepe', 'FLOKIUSDT': 'floki'
+                 };
+                 
+                 const markets = requestedSymbols.map(sym => {
+                     const id = mapSym[sym];
+                     if (id && geckoData[id]) {
+                         return {
+                             symbol: sym,
+                             lastPrice: geckoData[id].usd.toString(),
+                             priceChangePercent: geckoData[id].usd_24h_change.toFixed(2),
+                             volume: "0" // CoinGecko simple price doesn't have volume easily
+                         };
+                     }
+                     return null;
+                 }).filter(Boolean);
+                 
+                 if (markets.length > 0) return res.json(markets);
+             }
+        } catch (e) {
+             console.error("CoinGecko market fetch failed:", e.message);
+        }
+
+        // Fallback: CoinCap (Public API, no auth, often works on VPS)
+        try {
+             const rCap = await fetch('https://api.coincap.io/v2/assets?limit=100');
+             if (rCap.ok) {
+                 const json = await rCap.json(); // { data: [...] }
+                 const requestedSymbols = JSON.parse(symbolsParam || "[]");
+                 
+                 // Map CoinCap data to our format
+                 const markets = requestedSymbols.map(sym => {
+                     const base = sym.replace('USDT', '');
+                     const item = json.data.find(d => d.symbol === base);
+                     if (item) {
+                         return {
+                             symbol: sym,
+                             lastPrice: item.priceUsd,
+                             priceChangePercent: item.changePercent24Hr,
+                             volume: item.volumeUsd24Hr
+                         };
+                     }
+                     return null;
+                 }).filter(Boolean);
+                 
+                 if (markets.length > 0) return res.json(markets);
+             }
+        } catch (e) {
+             console.error("CoinCap market fetch failed:", e.message);
+        }
+
+        // Fallback to simple price ticker (lighter, maybe less blocked)
+        try {
+            const urlPrice = `https://api.binance.com/api/v3/ticker/price?symbols=${encodeURIComponent(symbolsParam)}`;
+            const r = await fetch(urlPrice, {
+                headers: { 'User-Agent': 'Node.js/1.0' }
+            });
+            
+            if (r.ok) {
+                const data = await r.json();
+                const items = Array.isArray(data) ? data : [data];
+                // Map to expected format (missing change percent)
+                const markets = items.map(item => ({
+                    symbol: item.symbol,
+                    lastPrice: item.price,
+                    priceChangePercent: "0.00", // Not available in this endpoint
+                    volume: "0"
+                }));
+                return res.json(markets);
+            }
+        } catch (e) {
+            console.error("Binance price fetch failed:", e.message);
+        }
+
+        // FINAL FALLBACK: Return 0.00 for requested symbols to avoid crash
+        const symbols = JSON.parse(symbolsParam || "[]");
+        const fallbackData = symbols.map(s => ({
+            symbol: s,
+            lastPrice: "0.00",
+            priceChangePercent: "0.00",
+            volume: "0"
+        }));
         
-        res.json(data);
+        // Try to fill with some hardcoded data if available
+        const prices = await getPrices(); // Internal helper that has some hardcoded values
+        fallbackData.forEach(item => {
+            const base = item.symbol.replace('USDT', '');
+            if (prices[base]) {
+                item.lastPrice = prices[base].toString();
+            }
+        });
         
+        res.json(fallbackData);
+
     } catch (e) {
         console.error("Market data error:", e);
         res.status(500).json({ error: "Failed to fetch market data" });
+    }
+});
+
+// KLINES (Candlestick data)
+app.get("/api/klines", async (req, res) => {
+    try {
+        const { symbol, interval, limit } = req.query;
+        if (!symbol) return res.status(400).json({ error: "Missing symbol" });
+
+        // Ensure symbol has USDT if not present (heuristic for this app)
+        let binanceSymbol = symbol.toUpperCase();
+        // If symbol doesn't end with USDT and is not a stable pair like USDC/USDT (which is unlikely here), append USDT
+        // But the frontend usually sends 'BTC' or 'BTCUSDT'.
+        // If it sends 'BTC', we append 'USDT'.
+        if (!binanceSymbol.endsWith('USDT') && !binanceSymbol.endsWith('BTC') && !binanceSymbol.endsWith('ETH') && !binanceSymbol.endsWith('BNB')) {
+             binanceSymbol += 'USDT';
+        }
+        
+        // However, the frontend sends 'BTC' (stripped from 'BTC/USDT').
+        // So standardizing to 'BTCUSDT' is safe for this specific app context.
+        if (!binanceSymbol.includes('USDT')) {
+            binanceSymbol += 'USDT';
+        }
+
+        const binanceInterval = interval || '1m';
+        const binanceLimit = limit || 100;
+
+        const url = `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${binanceInterval}&limit=${binanceLimit}`;
+        
+        try {
+            const r = await fetch(url, { headers: { 'User-Agent': 'Node.js/1.0' } });
+            if (r.ok) {
+                const data = await r.json();
+                return res.json(data);
+            } else {
+                 console.error("Binance klines error:", r.status);
+            }
+        } catch (e) {
+            console.error("Binance klines fetch failed:", e.message);
+        }
+
+        res.json([]);
+    } catch (e) {
+        console.error("Klines error:", e);
+        res.status(500).json({ error: "Failed to fetch klines" });
     }
 });
 
@@ -887,6 +1048,116 @@ app.get("/api/user/settings", async (req, res) => {
     }
 });
 
+/* ================= SPOT TRADING APIs ================= */
+
+// ORDER BOOK (Spot)
+app.get("/api/depth", async (req, res) => {
+    const symbol = req.query.symbol || "BTCUSDT";
+    try {
+        const r = await fetch(`https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=10`);
+        const data = await r.json();
+        res.json(data);
+    } catch (e) {
+        res.json({ bids: [], asks: [] });
+    }
+});
+
+// SPOT ORDER
+app.post("/api/spot/order", async (req, res) => {
+    const username = req.cookies.user || req.headers['x-user'];
+    if (!username) return res.status(401).json({ error: "Unauthorized" });
+
+    const { symbol, side, type, price, quantity } = req.body;
+    // side: BUY or SELL
+
+    if (!symbol || !side || !quantity) {
+        return res.status(400).json({ error: "Missing fields" });
+    }
+
+    const qty = parseFloat(quantity);
+    if (isNaN(qty) || qty <= 0) return res.status(400).json({ error: "Invalid quantity" });
+
+    try {
+        await db.run("BEGIN TRANSACTION");
+        
+        // Get Current Price
+        const prices = await getPrices();
+        const baseAsset = symbol.replace('USDT', '');
+        const currentPrice = prices[baseAsset] || 0;
+        
+        if (currentPrice <= 0) throw new Error("Price unavailable");
+
+        const tradePrice = type === 'LIMIT' && price ? parseFloat(price) : currentPrice;
+        const totalCost = qty * tradePrice;
+
+        if (side === 'BUY') {
+            // BUY: Pay USDT, Get Coin
+            let usdtBal = 0;
+            // Check user_balances first
+            const ub = await db.get("SELECT amount FROM user_balances WHERE username=? AND currency='USDT'", [username]);
+            if (ub) usdtBal = ub.amount;
+            else {
+                // Fallback to main users table
+                const u = await db.get("SELECT balance FROM users WHERE username=?", [username]);
+                usdtBal = u ? u.balance : 0;
+            }
+
+            if (usdtBal < totalCost) {
+                await db.run("ROLLBACK");
+                return res.status(400).json({ error: "Insufficient USDT balance" });
+            }
+
+            // Deduct USDT
+            if (ub) {
+                 await db.run("UPDATE user_balances SET amount = amount - ? WHERE username=? AND currency='USDT'", [totalCost, username]);
+            } else {
+                 await db.run("UPDATE users SET balance = balance - ? WHERE username=?", [totalCost, username]);
+                 // Also insert into user_balances to migrate
+                 await db.run("INSERT INTO user_balances (username, currency, amount) VALUES (?, 'USDT', ?)", [username, usdtBal - totalCost]);
+            }
+
+            // Add Coin
+            await db.run(`
+                INSERT INTO user_balances (username, currency, amount) VALUES (?, ?, ?)
+                ON CONFLICT(username, currency) DO UPDATE SET amount = amount + ?
+            `, [username, baseAsset, qty, qty]);
+
+        } else {
+            // SELL: Pay Coin, Get USDT
+            const cb = await db.get("SELECT amount FROM user_balances WHERE username=? AND currency=?", [username, baseAsset]);
+            if (!cb || cb.amount < qty) {
+                 await db.run("ROLLBACK");
+                 return res.status(400).json({ error: `Insufficient ${baseAsset} balance` });
+            }
+
+            // Deduct Coin
+            await db.run("UPDATE user_balances SET amount = amount - ? WHERE username=? AND currency=?", [qty, username, baseAsset]);
+
+            // Add USDT
+            await db.run(`
+                INSERT INTO user_balances (username, currency, amount) VALUES (?, 'USDT', ?)
+                ON CONFLICT(username, currency) DO UPDATE SET amount = amount + ?
+            `, [username, totalCost, totalCost]);
+            
+            // Sync legacy balance
+            await db.run("UPDATE users SET balance = balance + ? WHERE username=?", [totalCost, username]);
+        }
+
+        // Record Trade
+        await db.run(`
+            INSERT INTO trades (username, symbol, side, amount, profit, result)
+            VALUES (?, ?, ?, ?, ?, 'filled')
+        `, [username, symbol, side, qty, tradePrice]); 
+
+        await db.run("COMMIT");
+        res.json({ success: true, price: tradePrice, quantity: qty, cost: totalCost });
+
+    } catch (e) {
+        await db.run("ROLLBACK");
+        res.status(500).json({ error: e.message });
+    }
+});
+
 /* ================== DEMO TRADE ENGINE ================== */
 // Admin decides winning side
 let ADMIN_WIN_SIDE = "short"; // "long" or "short"
@@ -946,6 +1217,13 @@ app.post("/api/trade", async (req, res) => {
     await db.run(
       "UPDATE users SET balance = balance + ? WHERE username=?", [profit, username]
     );
+
+    // Sync user_balances for USDT
+    await db.run(`
+      INSERT INTO user_balances (username, currency, amount) 
+      VALUES (?, 'USDT', ?)
+      ON CONFLICT(username, currency) DO UPDATE SET amount = amount + ?
+    `, [username, profit, profit]);
 
     res.json({
       result: win ? "win" : "lose",

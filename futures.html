@@ -552,14 +552,8 @@
         }, 3000);
     }
 
-    const prices = {
-        'BTC/USDT': 88294.30,
-        'ETH/USDT': 2982.34,
-        'LTC/USDT': 76.53,
-        'XRP/USDT': 1.9050,
-        'DOGE/USDT': 0.13081,
-        'SOL/USDT': 112.35
-    };
+    const prices = {}; // Initialized empty, populated by API
+
     
     // Mock prices for other categories
     const mockPrices = {
@@ -575,8 +569,179 @@
 
     let selectedPair = 'BTC/USDT';
     let currentCategory = 'crypto';
+    
+    // WebSocket for Real-Time Crypto Data
+    let ws = null;
+    let wsSymbol = null;
 
-    // --- Tab Switching Logic ---
+    function initWebSocket() {
+        console.log("Using Backend Polling for prices...");
+        // WebSocket disabled to ensure all traffic goes through backend proxy
+        /*
+        if (currentCategory !== 'crypto') {
+            if (ws) { ws.close(); ws = null; }
+            wsSymbol = null;
+            return;
+        }
+
+        const symbol = selectedPair.replace('/', '').toLowerCase();
+        
+        // If already connected to the same symbol, do nothing
+        if (ws && ws.readyState === WebSocket.OPEN && wsSymbol === symbol) return;
+
+        // If connected to a different symbol, close and reconnect
+        if (ws) {
+            ws.close();
+        }
+
+        wsSymbol = symbol;
+        // Use standard port 443
+        ws = new WebSocket('wss://stream.binance.com/ws/' + symbol + '@ticker');
+
+        ws.onopen = () => {
+            console.log('Connected to Binance WS for ' + symbol);
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                if (msg.e === '24hrTicker') {
+                    const price = parseFloat(msg.c);
+                    const high = parseFloat(msg.h);
+                    const low = parseFloat(msg.l);
+                    const vol = parseFloat(msg.v);
+                    const qVol = parseFloat(msg.q);
+                    const changePct = parseFloat(msg.P);
+                    
+                    // Update global state
+                    prices[selectedPair] = price;
+                    
+                    // Update UI
+                    requestAnimationFrame(() => {
+                        const pairPrice = document.getElementById('pairPrice');
+                        const pairUsd = document.getElementById('pairUsd');
+                        const statHigh = document.getElementById('statHigh');
+                        const statLow = document.getElementById('statLow');
+                        const statVolBTC = document.getElementById('statVolBTC');
+                        const statVolUSDT = document.getElementById('statVolUSDT');
+                        const modalPrice = document.getElementById('modalPrice');
+                        const orderModal = document.getElementById('orderModal');
+
+                        if(pairPrice) {
+                            pairPrice.textContent = price.toFixed(2);
+                            pairPrice.className = `text-3xl font-bold ${changePct >= 0 ? 'text-green-custom' : 'text-red-custom'} mb-1`;
+                        }
+                        if(pairUsd) {
+                            pairUsd.innerHTML = '$' + price.toFixed(2) + ` <span class="${changePct >= 0 ? 'text-green-custom' : 'text-red-custom'} ml-1">${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%</span>`;
+                        }
+                        
+                        if(statHigh) statHigh.textContent = high.toFixed(2);
+                        if(statLow) statLow.textContent = low.toFixed(2);
+                        if(statVolBTC) statVolBTC.textContent = vol.toFixed(3);
+                        if(statVolUSDT) statVolUSDT.textContent = (qVol / 1000000).toFixed(2) + 'M';
+                        
+                        if (modalPrice && orderModal && !orderModal.classList.contains('hidden')) {
+                            modalPrice.textContent = price.toFixed(2);
+                        }
+                    });
+                }
+            } catch(e) { console.error("WS Parse Error", e); }
+        };
+
+        ws.onerror = (e) => {
+            console.error("WS Error", e);
+        };
+        
+        ws.onclose = () => {
+            wsSymbol = null;
+            // Auto reconnect if still on crypto
+            if(currentCategory === 'crypto') {
+                setTimeout(initWebSocket, 5000);
+            }
+        };
+        */
+    }
+
+    const assetLists = {
+        crypto: [
+            'BTC/USDT', 'ETH/USDT', 'LTC/USDT', 'XRP/USDT', 'DOGE/USDT', 'SOL/USDT',
+            'BNB/USDT', 'ADA/USDT', 'MATIC/USDT', 'DOT/USDT', 'AVAX/USDT', 'TRX/USDT',
+            'LINK/USDT', 'ATOM/USDT', 'UNI/USDT', 'ETC/USDT', 'FIL/USDT', 'BCH/USDT', 'SHIB/USDT'
+        ],
+        stock: ['AAPL', 'TSLA', 'GOOGL', 'AMZN', 'MSFT', 'NFLX', 'NVDA', 'META', 'AMD', 'INTC'],
+        forex: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD', 'USD/CHF', 'NZD/USD'],
+        gold: ['XAU/USD', 'XAG/USD', 'WTI/USD', 'BRENT/USD']
+    };
+
+    // Check URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramSymbol = urlParams.get('symbol');
+    if(paramSymbol) {
+        let found = false;
+        // Try to match against assetLists
+        for(const [cat, list] of Object.entries(assetLists)) {
+             for(const asset of list) {
+                 // Check exact match or unslashed match
+                 if(asset === paramSymbol || asset.replace('/', '') === paramSymbol) {
+                     selectedPair = asset;
+                     currentCategory = cat;
+                     found = true;
+                     break;
+                 }
+             }
+             if(found) break;
+        }
+        
+        if(!found) {
+            // Fallback heuristic if not in lists
+            if(!paramSymbol.includes('/')) {
+                 if(paramSymbol.endsWith('USDT')) {
+                     selectedPair = paramSymbol.replace('USDT', '/USDT');
+                     currentCategory = 'crypto';
+                 } else {
+                     selectedPair = paramSymbol;
+                 }
+            } else {
+                selectedPair = paramSymbol;
+            }
+        }
+         
+         // Update UI title immediately
+         const pairNameEl = document.getElementById('pairName');
+         if(pairNameEl) pairNameEl.textContent = selectedPair;
+         
+         // Update Tab UI
+         const tabs = ['crypto', 'stock', 'forex', 'gold'];
+         tabs.forEach(c => {
+            const t = document.getElementById('tab' + c.charAt(0).toUpperCase() + c.slice(1));
+            if(t) {
+                if(c === currentCategory) {
+                    t.classList.remove('font-medium', 'text-gray-400');
+                    t.classList.add('border-b-2', 'border-yellow-custom', 'font-bold', 'text-gray-800');
+                } else {
+                    t.classList.remove('border-b-2', 'border-yellow-custom', 'font-bold', 'text-gray-800');
+                    t.classList.add('font-medium', 'text-gray-400');
+                }
+            }
+         });
+     }
+ 
+     // --- Tab Switching Logic ---
+    // const tabs = ... (already defined above in my inserted block, but original code defines it below)
+    // Wait, original code: const tabs = ['crypto', 'stock', 'forex', 'gold'];
+    // I should check if I am redeclaring it.
+    
+    // I can just remove 'const' if it's already defined, or move the definition up.
+    // The original code has `const tabs = ...` AFTER my insertion point.
+    // So if I use `tabs` inside the `if`, I need to define it there or before.
+    
+    // Let's look at the context again.
+    // I am inside the script tag. `tabs` is defined later.
+    
+    // I will define `const tabsList = ['crypto', 'stock', 'forex', 'gold'];` inside the if block to avoid conflict, or just move the global `tabs` definition up.
+    
+    // Moving `tabs` definition up is cleaner.
+
     const tabs = ['crypto', 'stock', 'forex', 'gold'];
     tabs.forEach(cat => {
         const el = document.getElementById('tab' + cat.charAt(0).toUpperCase() + cat.slice(1));
@@ -605,6 +770,7 @@
                 mockCandles = []; // Reset chart history
                 updateTicker();
                 updateChart();
+                initWebSocket(); // Connect WS
             });
         }
     });
@@ -613,39 +779,31 @@
         const dropdown = document.getElementById('pairDropdown');
         dropdown.innerHTML = '';
         
-        let assets = [];
-        if (currentCategory === 'crypto') {
-            assets = [
-                'BTC/USDT', 'ETH/USDT', 'LTC/USDT', 'XRP/USDT', 'DOGE/USDT', 'SOL/USDT',
-                'BNB/USDT', 'ADA/USDT', 'MATIC/USDT', 'DOT/USDT', 'AVAX/USDT', 'TRX/USDT',
-                'LINK/USDT', 'ATOM/USDT', 'UNI/USDT', 'ETC/USDT', 'FIL/USDT', 'BCH/USDT'
-            ];
-        } else if (currentCategory === 'stock') {
-            assets = ['AAPL', 'TSLA', 'GOOGL', 'AMZN', 'MSFT', 'NFLX', 'NVDA', 'META', 'AMD', 'INTC'];
-        } else if (currentCategory === 'forex') {
-            assets = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD', 'USD/CHF', 'NZD/USD'];
-        } else if (currentCategory === 'gold') {
-            assets = ['XAU/USD', 'XAG/USD', 'WTI/USD', 'BRENT/USD'];
-        }
+        const assets = assetLists[currentCategory] || [];
 
         assets.forEach(asset => {
             const btn = document.createElement('button');
             btn.className = 'w-full text-left px-3 py-2 hover:bg-gray-50';
             btn.textContent = asset;
             btn.onclick = () => {
-                selectedPair = asset;
-                pairName.textContent = asset;
-                dropdown.classList.add('hidden');
-                mockCandles = [];
-                updateTicker();
-                updateChart();
-            };
+                    selectedPair = asset;
+                    pairName.textContent = asset;
+                    dropdown.classList.add('hidden');
+                    mockCandles = [];
+                    updateTicker();
+                    updateChart();
+                    // Reconnect WebSocket for the new asset
+                    initWebSocket();
+                };
             dropdown.appendChild(btn);
         });
     }
     
     // Initial dropdown population
     updateAssetDropdown();
+    
+    // Start WS
+    initWebSocket();
 
     // --- Chart Initialization ---
     const chartContainer = document.getElementById('chart');
@@ -789,12 +947,22 @@
                         pairUsd.textContent = '$' + price.toFixed(2);
                         
                         // Update stats
-                        statHigh.textContent = parseFloat(t.highPrice || t.high).toFixed(2);
-                        statLow.textContent = parseFloat(t.lowPrice || t.low).toFixed(2);
-                        statVolBTC.textContent = parseFloat(t.volume).toFixed(3);
+                        let high = parseFloat(t.highPrice || t.high);
+                        if (isNaN(high)) high = price; // fallback to current if high is invalid
+                        statHigh.textContent = high.toFixed(2);
+
+                        let low = parseFloat(t.lowPrice || t.low);
+                        if (isNaN(low)) low = price; // fallback
+                        statLow.textContent = low.toFixed(2);
+
+                        let vol = parseFloat(t.volume);
+                        if (isNaN(vol)) vol = 0;
+                        statVolBTC.textContent = vol.toFixed(3);
+
                         // Use quoteVolume for USDT volume if available
-                        const volUsd = t.quoteVolume ? parseFloat(t.quoteVolume) : (parseFloat(t.volume) * price);
-                        statVolUSDT.textContent = (volUsd / 1000000).toFixed(2) + 'M';
+                        let qVol = parseFloat(t.quoteVolume);
+                        if (isNaN(qVol)) qVol = vol * price;
+                        statVolUSDT.textContent = (qVol / 1000000).toFixed(2) + 'M';
 
                         // Update global prices object for modal
                         prices[selectedPair] = price;
@@ -837,17 +1005,11 @@
     // Fetch User Balance
     let currentUserBalance = 0;
 
-    function getApiBase() {
-        // Per VPS requirements: Always use relative path or window.location.origin
-        // NGINX handles proxying /api to the backend
-        return window.location.origin;
-    }
-
     async function fetchUserBalance() {
         const u = localStorage.getItem('authUser');
         if (!u) return;
         try {
-            const res = await fetch(getApiBase() + '/api/me', { headers: { 'x-user': u } });
+            const res = await fetch(window.location.origin + '/api/me', { headers: { 'x-user': u } });
             const data = await res.json();
             if (data && data.balance !== undefined) {
                 currentUserBalance = parseFloat(data.balance);
@@ -977,6 +1139,11 @@
         cdPriceLabel.textContent = 'Estimated income';
         cdBigResult.classList.remove('text-red-600','text-green-600');
         cdModal.classList.remove('hidden');
+        
+        // Hide buttons during trade
+        cdBack.classList.add('hidden');
+        cdContinue.classList.add('hidden');
+
         const total = secs * 10;
         let t = total;
         const circumference = 2 * Math.PI * 45;
@@ -1019,7 +1186,14 @@
                 const base = prices[selectedPair] || 0;
                 const drift = base * (Math.random() - 0.5) * 0.0005;
                 cdSettle.textContent = (base + drift).toFixed(2);
+                
+                // Show buttons after trade completion
+                cdBack.classList.remove('hidden');
+                cdContinue.classList.remove('hidden');
+                
                 pendingTradeRes = null;
+                // Refresh balance
+                fetchUserBalance();
                 return;
             }
             cdText.textContent = (t/10).toFixed(1);
@@ -1030,6 +1204,12 @@
     modalConfirm.addEventListener('click', async () => {
         const amt = parseFloat(modalAmount.value);
         if (!amt || amt < minTradeAmount) {
+            showToast(`Minimum trade amount is ${minTradeAmount} USDT`, 'error');
+            return;
+        }
+        
+        // Check insufficient balance
+        if (amt > currentUserBalance) {
             showToast('Insufficient balance', 'error');
             return;
         }

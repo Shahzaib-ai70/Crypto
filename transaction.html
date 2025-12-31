@@ -3,308 +3,400 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bitsafe - Transaction</title>
-    <!-- Tailwind CSS -->
+    <title>Transaction - BitSafe</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
         body {
             font-family: 'Inter', sans-serif;
             background-color: #ffffff;
+            color: #1f2937;
         }
-        .text-green-custom {
-            color: #0ECB81;
-        }
-        .bg-green-custom {
-            background-color: #0ECB81;
-        }
-        .text-red-custom {
-            color: #F6465D;
-        }
-        .bg-red-custom {
-            background-color: #F6465D;
-        }
-        .text-yellow-custom {
-            color: #F0B90B;
-        }
-        .bg-yellow-custom {
-            background-color: #ffb11a;
-        }
+        
         .bottom-nav-item.active {
             color: #1f2937;
         }
         .bottom-nav-item {
             color: #9ca3af;
         }
-        /* Custom range slider thumb */
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 16px;
-            width: 16px;
-            border-radius: 50%;
-            background: #ffb11a;
-            cursor: pointer;
-            margin-top: -6px;
-        }
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 4px;
-            cursor: pointer;
-            background: #e5e7eb;
-            border-radius: 2px;
-        }
-        .order-book-row {
-            position: relative;
-        }
-        .order-book-bg-red {
-            position: absolute;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(246, 70, 93, 0.1);
-            z-index: 0;
-        }
-        .order-book-bg-green {
-            position: absolute;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(14, 203, 129, 0.1);
-            z-index: 0;
-        }
+
+        .text-green-custom { color: #10B981; }
+        .text-red-custom { color: #EF4444; }
     </style>
 </head>
-<body class="pb-20 max-w-md mx-auto bg-white min-h-screen shadow-lg overflow-x-hidden flex flex-col">
+<body class="pb-20">
 
     <!-- Header -->
-    <div class="px-4 py-3 flex items-center justify-between border-b border-gray-100">
-        <div class="flex items-center">
-            <i class="fa-solid fa-bars text-gray-800 mr-4 text-xl"></i>
-            <h1 class="text-xl font-bold text-gray-800 mr-2">BTC/USDT</h1>
-            <span class="bg-gray-100 text-xs px-1 py-0.5 rounded text-gray-500 mr-1">Spot</span>
-            <i class="fa-solid fa-caret-down text-gray-400 text-xs"></i>
+    <div class="flex items-center justify-between px-4 py-4 bg-white sticky top-0 z-40 border-b border-gray-100">
+        <div class="flex items-center gap-2">
+            <h1 class="text-xl font-bold">Spot</h1>
         </div>
-        <div>
-            <i class="fa-solid fa-chart-candlestick text-gray-800 text-lg"></i>
-            <i class="fa-solid fa-ellipsis text-gray-800 text-lg ml-4"></i>
+        <div class="flex gap-4 text-gray-600">
+            <i class="fa-solid fa-chart-simple"></i>
+            <i class="fa-solid fa-ellipsis-vertical"></i>
         </div>
     </div>
 
-    <!-- Main Content Grid -->
-    <div class="flex px-4 py-4 gap-4">
+    <!-- Main Content -->
+    <div class="max-w-4xl mx-auto p-4">
         
-        <!-- Left Column: Order Book -->
-        <div class="w-5/12">
-            <div class="flex justify-between text-[10px] text-gray-400 mb-2">
-                <span class="text-left">Price<br>(USDT)</span>
-                <span class="text-right">Amount<br>(BTC)</span>
-            </div>
-
-            <!-- Sell Orders (Red) -->
-            <div class="space-y-1 mb-2">
-                <div class="flex justify-between text-xs order-book-row">
-                    <div class="order-book-bg-red" style="width: 20%;"></div>
-                    <span class="text-red-custom z-10 font-medium">88337.45</span>
-                    <span class="text-gray-500 z-10">0.00001</span>
-                </div>
-                <div class="flex justify-between text-xs order-book-row">
-                    <div class="order-book-bg-red" style="width: 40%;"></div>
-                    <span class="text-red-custom z-10 font-medium">88337.44</span>
-                    <span class="text-gray-500 z-10">0.00174</span>
-                </div>
-                <div class="flex justify-between text-xs order-book-row">
-                    <div class="order-book-bg-red" style="width: 15%;"></div>
-                    <span class="text-red-custom z-10 font-medium">88337.43</span>
-                    <span class="text-gray-500 z-10">0.00061</span>
-                </div>
-                <div class="flex justify-between text-xs order-book-row">
-                    <div class="order-book-bg-red" style="width: 60%;"></div>
-                    <span class="text-red-custom z-10 font-medium">88332.12</span>
-                    <span class="text-gray-500 z-10">0.02695</span>
-                </div>
-                <div class="flex justify-between text-xs order-book-row">
-                    <div class="order-book-bg-red" style="width: 25%;"></div>
-                    <span class="text-red-custom z-10 font-medium">88332.11</span>
-                    <span class="text-gray-500 z-10">0.00068</span>
-                </div>
-                <div class="flex justify-between text-xs order-book-row">
-                    <div class="order-book-bg-red" style="width: 10%;"></div>
-                    <span class="text-red-custom z-10 font-medium">88332.10</span>
-                    <span class="text-gray-500 z-10">0.00048</span>
-                </div>
-            </div>
-
-            <!-- Current Price -->
-            <div class="text-center py-2">
-                <div class="text-green-custom text-xl font-bold">88332.08</div>
-                <div class="text-green-custom text-xs">88332.08</div>
-            </div>
-
-            <!-- Buy Orders (Green) -->
-            <div class="space-y-1 mt-2">
-                <div class="flex justify-between text-xs order-book-row">
-                    <div class="order-book-bg-green" style="width: 50%;"></div>
-                    <span class="text-green-custom z-10 font-medium">88332.08</span>
-                    <span class="text-gray-500 z-10">0.02131</span>
-                </div>
-                <div class="flex justify-between text-xs order-book-row">
-                    <div class="order-book-bg-green" style="width: 70%;"></div>
-                    <span class="text-green-custom z-10 font-medium">88332.07</span>
-                    <span class="text-gray-500 z-10">0.03715</span>
-                </div>
-                <div class="flex justify-between text-xs order-book-row">
-                    <div class="order-book-bg-green" style="width: 45%;"></div>
-                    <span class="text-green-custom z-10 font-medium">88332.06</span>
-                    <span class="text-gray-500 z-10">0.02621</span>
-                </div>
-                <div class="flex justify-between text-xs order-book-row">
-                    <div class="order-book-bg-green" style="width: 30%;"></div>
-                    <span class="text-green-custom z-10 font-medium">88326.47</span>
-                    <span class="text-gray-500 z-10">0.00175</span>
-                </div>
-                <div class="flex justify-between text-xs order-book-row">
-                    <div class="order-book-bg-green" style="width: 15%;"></div>
-                    <span class="text-green-custom z-10 font-medium">88326.46</span>
-                    <span class="text-gray-500 z-10">0.00062</span>
-                </div>
-                <div class="flex justify-between text-xs order-book-row">
-                    <div class="order-book-bg-green" style="width: 12%;"></div>
-                    <span class="text-green-custom z-10 font-medium">88326.45</span>
-                    <span class="text-gray-500 z-10">0.00053</span>
-                </div>
-            </div>
-            
-            <!-- Order Book Controls -->
-            <div class="flex justify-between mt-2">
-                <div class="flex space-x-1">
-                     <select class="text-xs border border-gray-200 rounded px-1 text-gray-600 bg-white">
-                        <option>0.01</option>
-                        <option>0.1</option>
-                     </select>
-                </div>
+        <!-- Top: Pair & Price -->
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-bars text-gray-400"></i>
+                <h2 class="text-xl font-bold" id="pairDisplay">BTC/USDT</h2>
+                <span id="changeDisplay" class="text-green-custom bg-green-50 px-2 py-0.5 rounded text-xs">--%</span>
             </div>
         </div>
 
-        <!-- Right Column: Trading Form -->
-        <div class="w-7/12">
-            <!-- Buy/Sell Toggle -->
-            <div class="flex bg-gray-100 rounded p-0.5 mb-3">
-                <button class="flex-1 bg-green-custom text-white py-1.5 rounded text-sm font-bold shadow-sm">Buy</button>
-                <button class="flex-1 text-gray-500 py-1.5 text-sm font-medium">Sell</button>
-            </div>
-
-            <!-- Order Type -->
-            <div class="relative mb-3">
-                <select class="w-full bg-gray-100 text-gray-800 text-sm font-medium py-2 px-3 rounded appearance-none outline-none">
-                    <option>Market</option>
-                    <option>Limit</option>
-                    <option>Stop-Limit</option>
-                </select>
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                    <i class="fa-solid fa-caret-down text-xs"></i>
+        <div class="grid grid-cols-2 gap-6">
+            <!-- Left: Order Book -->
+            <div>
+                <div class="flex justify-between text-xs text-gray-400 mb-2">
+                    <span data-i18n="price">Price</span>
+                    <span data-i18n="amount">Amount</span>
+                </div>
+                <div class="space-y-1" id="orderBook">
+                    <div class="text-center text-xs text-gray-400 mt-10">Loading...</div>
                 </div>
             </div>
 
-            <!-- Price Input (Disabled for Market) -->
-            <div class="bg-gray-100 rounded py-2 px-3 mb-3 text-center">
-                <span class="text-sm text-gray-500 font-medium">Market Price</span>
-            </div>
-
-            <!-- Amount Input -->
-            <div class="bg-gray-100 rounded py-2 px-3 mb-4 flex items-center justify-between">
-                <input id="tradeAmount" type="text" placeholder="Amount" class="bg-transparent outline-none text-sm w-full text-gray-700">
-                <span class="text-xs text-gray-500 font-medium">USDT</span>
-            </div>
-
-            <!-- Slider -->
-            <div class="mb-4 px-1">
-                <input type="range" min="0" max="100" value="0" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer">
-                <div class="flex justify-between text-[10px] text-gray-400 mt-1">
-                    <span>0%</span>
-                    <span>25%</span>
-                    <span>50%</span>
-                    <span>75%</span>
-                    <span>100%</span>
+            <!-- Right: Form -->
+            <div>
+                <div class="flex bg-gray-100 rounded p-1 mb-4">
+                    <button id="btnBuy" onclick="setSide('BUY')" class="flex-1 py-1.5 rounded text-sm font-semibold bg-green-500 text-white transition-colors" data-i18n="buy">Buy</button>
+                    <button id="btnSell" onclick="setSide('SELL')" class="flex-1 py-1.5 rounded text-sm font-semibold text-gray-500 transition-colors" data-i18n="sell">Sell</button>
                 </div>
-            </div>
 
-            <!-- Available / Fee -->
-            <div class="flex justify-between text-xs text-gray-500 mb-1">
-                <span>Available</span>
-                <span class="text-gray-800 font-medium">0.00 USDT</span>
-            </div>
-            <div class="flex justify-between text-xs text-gray-500 mb-4">
-                <span>Fee</span>
-                <span class="text-gray-800">0.01%</span>
-            </div>
+                <div class="space-y-3">
+                    <div class="relative">
+                        <input id="inputPrice" type="number" step="0.01" class="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm" placeholder="Price">
+                    </div>
+                    <div class="relative">
+                        <input id="inputAmount" type="number" step="0.0001" class="w-full bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm" placeholder="Amount">
+                    </div>
+                </div>
 
-            <!-- Action Button -->
-            <button onclick="submitTrade('buy')" class="w-full bg-green-custom text-white py-3 rounded font-bold shadow-md active:opacity-90 transition-opacity">
-                Buy BTC
-            </button>
+                <div class="flex justify-between gap-1 mt-3 mb-4">
+                    <button onclick="setPercent(25)" class="flex-1 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] text-gray-500">25%</button>
+                    <button onclick="setPercent(50)" class="flex-1 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] text-gray-500">50%</button>
+                    <button onclick="setPercent(75)" class="flex-1 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] text-gray-500">75%</button>
+                    <button onclick="setPercent(100)" class="flex-1 py-1 bg-gray-50 border border-gray-200 rounded text-[10px] text-gray-500">100%</button>
+                </div>
+
+                <div class="flex justify-between text-xs text-gray-400 mb-3">
+                    <span data-i18n="available">Avail</span>
+                    <span id="availBalance">0.00 USDT</span>
+                </div>
+
+                <button id="btnAction" onclick="submitOrder()" class="w-full py-3 rounded bg-green-500 text-white font-bold text-sm">Buy BTC</button>
+            </div>
         </div>
-    </div>
-
-    <!-- Tabs: Orders / Positions -->
-    <div class="px-4 mt-2 border-b border-gray-100">
-        <div class="flex space-x-6">
-            <div class="border-b-2 border-yellow-custom pb-2 text-gray-800 font-bold text-sm">Orders</div>
-            <div class="pb-2 text-gray-400 font-medium text-sm">Positions</div>
-        </div>
-    </div>
-
-    <!-- Empty State -->
-    <div class="flex-1 flex flex-col items-center justify-center py-12 text-gray-300">
-        <i class="fa-solid fa-file-invoice text-4xl mb-2"></i>
-        <span class="text-sm font-medium">No Data</span>
     </div>
 
     <!-- Bottom Navigation -->
     <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 px-6 flex justify-between items-center z-20 max-w-md mx-auto">
         <a href="index.html" class="flex flex-col items-center bottom-nav-item cursor-pointer">
             <i class="fa-solid fa-house text-xl mb-1"></i>
-            <span class="text-[10px]">Home Page</span>
+            <span class="text-[10px]" data-i18n="home_page">Home Page</span>
         </a>
         <a href="quotes.html" class="flex flex-col items-center bottom-nav-item cursor-pointer">
             <i class="fa-solid fa-chart-simple text-xl mb-1"></i>
-            <span class="text-[10px]">Quotes</span>
+            <span class="text-[10px]" data-i18n="quotes">Quotes</span>
         </a>
-        <div class="relative -top-5">
-            <div class="w-12 h-12 bg-yellow-custom rounded-full flex items-center justify-center shadow-lg border-4 border-white cursor-pointer">
-                <i class="fa-solid fa-arrow-right-arrow-left text-gray-900 text-lg transform rotate-45"></i>
+        <a href="transaction.html" class="relative -top-5">
+            <div class="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
+                <i class="fa-solid fa-arrow-right-arrow-left text-white text-lg transform rotate-45"></i>
             </div>
             <div class="text-center mt-1">
-                <span class="text-[10px] text-gray-900 font-medium">Transaction</span>
+                <span class="text-[10px] text-gray-500" data-i18n="transaction">Transaction</span>
             </div>
-        </div>
+        </a>
         <a href="futures.html" class="flex flex-col items-center bottom-nav-item cursor-pointer">
             <i class="fa-solid fa-file-contract text-xl mb-1"></i>
-            <span class="text-[10px]">Futures</span>
+            <span class="text-[10px]" data-i18n="futures">Futures</span>
         </a>
         <a href="assets.html" class="flex flex-col items-center bottom-nav-item cursor-pointer">
             <i class="fa-solid fa-wallet text-xl mb-1"></i>
-            <span class="text-[10px]">Assets</span>
+            <span class="text-[10px]" data-i18n="assets">Assets</span>
         </a>
     </div>
-
+    
+    <script src="translations.js"></script>
     <script>
-        async function submitTrade(side) {
-            const symbol = 'BTCUSDT';
-            const quantity = document.getElementById('tradeAmount').value.trim();
-            const type = 'Market';
+        const API_BASE = `${window.location.origin}/api`; 
+        let currentSymbol = 'BTCUSDT';
+        let currentSide = 'BUY';
+        let currentPrice = 0;
+        let availableUSDT = 0;
+        let availableCoin = 0; // Base asset balance
+        let ws = null;
+        let wsSymbol = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedLang = localStorage.getItem('appLanguage') || 'English';
+            if (typeof setLanguage === 'function') {
+                setLanguage(savedLang);
+            }
+            
+            // Check URL params for symbol
+            const urlParams = new URLSearchParams(window.location.search);
+            const symbolParam = urlParams.get('symbol');
+            if (symbolParam) {
+                currentSymbol = symbolParam;
+                document.getElementById('pairDisplay').textContent = currentSymbol.replace('USDT', '/USDT');
+            }
+
+            // Initial Fetch
+            initWebSocket();
+            fetchUserData();
+            setInterval(fetchUserData, 3000); // Refresh balance every 3s
+            
+            // Fallback: If WS fails, poll price from backend every 3s
+            setInterval(() => {
+                if(!ws || ws.readyState !== WebSocket.OPEN) {
+                    fetchTickerRest();
+                }
+            }, 3000);
+        });
+
+        function initWebSocket() {
+            console.log("Using Backend Polling...");
+            // WebSocket disabled to ensure all traffic goes through backend proxy
+            /*
+            const symbol = currentSymbol.toLowerCase();
+            if (ws && wsSymbol === symbol && ws.readyState === WebSocket.OPEN) return;
+
+            if (ws) ws.close();
+
+            wsSymbol = symbol;
+            // Subscribe to combined streams: ticker and depth5 (use port 443)
+            ws = new WebSocket(`wss://stream.binance.com/stream?streams=${symbol}@ticker/${symbol}@depth5`);
+
+            ws.onopen = () => {
+                console.log('Connected to WS for ' + symbol);
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    const stream = msg.stream;
+                    const data = msg.data;
+
+                    if (stream.endsWith('@ticker')) {
+                        handleTicker(data);
+                    } else if (stream.endsWith('@depth5')) {
+                        handleDepth(data);
+                    }
+                } catch(e) { console.error("WS Parse Error", e); }
+            };
+
+            ws.onerror = (e) => {
+                console.error("WS Error", e);
+                // Trigger REST fallback immediately
+                fetchTickerRest();
+            };
+            
+            ws.onclose = () => {
+                console.log("WS Closed");
+                setTimeout(initWebSocket, 3000);
+            };
+            */
+        }
+        
+        async function fetchTickerRest() {
+             try {
+                 // Use Backend Proxy FIRST
+                 const url = `${API_BASE}/markets?symbols=${encodeURIComponent(JSON.stringify([currentSymbol]))}`;
+                 const res = await fetch(url);
+                 if(res.ok) {
+                     const data = await res.json();
+                     if(Array.isArray(data) && data.length > 0) {
+                         const item = data[0];
+                         // Mock Ticker format from backend data
+                         const ticker = {
+                             c: item.lastPrice,
+                             P: item.priceChangePercent
+                         };
+                         handleTicker(ticker);
+                     }
+                 }
+             } catch(e) {
+                 console.error("Backend ticker fetch failed", e);
+             }
+        }
+
+        function handleTicker(ticker) {
+            currentPrice = parseFloat(ticker.c);
+            const changeEl = document.getElementById('changeDisplay');
+            const chg = parseFloat(ticker.P);
+            const color = chg >= 0 ? "text-green-custom bg-green-50" : "text-red-custom bg-red-50";
+            const sign = chg >= 0 ? "+" : "";
+            
+            changeEl.className = `${color} px-2 py-0.5 rounded text-xs`;
+            changeEl.textContent = `${sign}${chg.toFixed(2)}%`;
+            
+            // Update input price if empty
+            const inputPrice = document.getElementById('inputPrice');
+            if (!inputPrice.value && document.activeElement !== inputPrice) {
+                inputPrice.value = currentPrice.toFixed(2);
+            }
+        }
+
+        function handleDepth(depth) {
+             const container = document.getElementById('orderBook');
+             if (!depth.bids || !depth.asks) return;
+
+             const asks = depth.asks.slice().reverse(); // depth5 returns 5 items
+             const bids = depth.bids;
+
+             let html = '';
+             // Asks (Red) - Sell orders
+             asks.forEach(ask => {
+                 const px = parseFloat(ask[0]).toFixed(2);
+                 const amt = parseFloat(ask[1]).toFixed(4);
+                 html += `
+                     <div class="flex justify-between text-xs">
+                         <span class="text-red-custom">${px}</span>
+                         <span class="text-gray-500">${amt}</span>
+                     </div>
+                 `;
+             });
+
+             // Center Price
+             // We use currentPrice from ticker if available, or calculate from mid market
+             const displayPrice = currentPrice || (parseFloat(asks[asks.length-1]?.[0]) + parseFloat(bids[0]?.[0])) / 2;
+             
+             html += `
+                <div class="py-2 text-center">
+                    <span class="text-lg font-bold ${currentPrice >= parseFloat(asks[asks.length-1]?.[0] || 0) ? 'text-green-custom' : 'text-red-custom'}">${displayPrice.toFixed(2)}</span>
+                    <div class="text-[10px] text-gray-400">≈ $${displayPrice.toFixed(2)}</div>
+                </div>
+            `;
+
+             // Bids (Green) - Buy orders
+             bids.forEach(bid => {
+                 const px = parseFloat(bid[0]).toFixed(2);
+                 const amt = parseFloat(bid[1]).toFixed(4);
+                 html += `
+                     <div class="flex justify-between text-xs">
+                         <span class="text-green-custom">${px}</span>
+                         <span class="text-gray-500">${amt}</span>
+                     </div>
+                 `;
+             });
+             
+             container.innerHTML = html;
+        }
+
+        function setSide(side) {
+            currentSide = side;
+            const btnBuy = document.getElementById('btnBuy');
+            const btnSell = document.getElementById('btnSell');
+            const btnAction = document.getElementById('btnAction');
+            const availDisplay = document.getElementById('availBalance');
+
+            if (side === 'BUY') {
+                btnBuy.className = "flex-1 py-1.5 rounded text-sm font-semibold bg-green-500 text-white transition-colors";
+                btnSell.className = "flex-1 py-1.5 rounded text-sm font-semibold text-gray-500 transition-colors";
+                btnAction.className = "w-full py-3 rounded bg-green-500 text-white font-bold text-sm";
+                btnAction.textContent = `Buy ${currentSymbol.replace('USDT','')}`;
+                availDisplay.textContent = `${availableUSDT.toFixed(2)} USDT`;
+            } else {
+                btnBuy.className = "flex-1 py-1.5 rounded text-sm font-semibold text-gray-500 transition-colors";
+                btnSell.className = "flex-1 py-1.5 rounded text-sm font-semibold bg-red-500 text-white transition-colors";
+                btnAction.className = "w-full py-3 rounded bg-red-500 text-white font-bold text-sm";
+                btnAction.textContent = `Sell ${currentSymbol.replace('USDT','')}`;
+                availDisplay.textContent = `${availableCoin.toFixed(4)} ${currentSymbol.replace('USDT','')}`;
+            }
+        }
+
+        async function fetchUserData() {
             try {
-                const res = await fetch(window.location.origin + '/api/trade', {
+                const userRes = await fetch(`${API_BASE}/me`);
+                if (userRes.ok) {
+                    const user = await userRes.json();
+                    if (user) {
+                        // Update Balances
+                        // USDT
+                        const usdtBal = user.balances ? user.balances.find(b => b.currency === 'USDT') : null;
+                        availableUSDT = usdtBal ? usdtBal.amount : (user.balance || 0);
+                        
+                        // Coin
+                        const coin = currentSymbol.replace('USDT', '');
+                        const coinBal = user.balances ? user.balances.find(b => b.currency === coin) : null;
+                        availableCoin = coinBal ? coinBal.amount : 0;
+                        
+                        // Update UI based on side
+                        const availDisplay = document.getElementById('availBalance');
+                        if (currentSide === 'BUY') {
+                            availDisplay.textContent = `${availableUSDT.toFixed(2)} USDT`;
+                        } else {
+                            availDisplay.textContent = `${availableCoin.toFixed(4)} ${coin}`;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Fetch error:", e);
+            }
+        }
+
+
+
+        function setPercent(pct) {
+            const inputAmount = document.getElementById('inputAmount');
+            const inputPrice = document.getElementById('inputPrice');
+            
+            const price = parseFloat(inputPrice.value) || currentPrice;
+            if (price <= 0) return;
+
+            if (currentSide === 'BUY') {
+                // Calculate amount based on USDT balance
+                const usdtToUse = availableUSDT * (pct / 100);
+                const amount = usdtToUse / price;
+                inputAmount.value = amount.toFixed(4);
+            } else {
+                // Calculate amount based on Coin balance
+                const amount = availableCoin * (pct / 100);
+                inputAmount.value = amount.toFixed(4);
+            }
+        }
+
+        async function submitOrder() {
+            const price = document.getElementById('inputPrice').value;
+            const amount = document.getElementById('inputAmount').value;
+            
+            if (!amount || parseFloat(amount) <= 0) {
+                alert("Please enter a valid amount");
+                return;
+            }
+
+            const payload = {
+                symbol: currentSymbol,
+                side: currentSide,
+                type: 'LIMIT', // Simplified
+                price: price,
+                quantity: amount
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/spot/order`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ symbol, side, quantity, type })
+                    body: JSON.stringify(payload)
                 });
-                const json = await res.json();
-                alert('Order ' + json.id + ' ' + json.outcome + ' PnL: ' + json.pnl);
+                
+                const data = await res.json();
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert("Order placed successfully!");
+                    fetchUserData(); // Refresh balances
+                }
             } catch (e) {
-                alert('Trade failed');
+                alert("Order failed: " + e.message);
             }
         }
     </script>

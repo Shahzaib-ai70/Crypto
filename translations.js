@@ -68,6 +68,7 @@ const translations = {
         "turnover": "Turnover",
         "volume": "Volume",
         "login": "Login",
+        "login_subtitle": "Welcome back! Please login to continue.",
         "email": "Email",
         "password": "Password",
         "confirm_password": "Confirm Password",
