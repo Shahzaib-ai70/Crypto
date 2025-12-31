@@ -120,14 +120,14 @@
         };
 
         const lists = {
-            crypto: ["BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "SOLUSDT", "ADAUSDT", "DOGEUSDT", "TRXUSDT", "LTCUSDT", "DOTUSDT", "LINKUSDT", "SHIBUSDT", "AVAXUSDT", "BCHUSDT", "UNIUSDT", "MATICUSDT"],
+            crypto: [], // Populated dynamically
             stock: ["AAPL", "TSLA", "GOOGL", "AMZN", "MSFT", "NVDA", "META", "NFLX"],
             forex: ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD"],
             gold: ["XAUUSD", "XAGUSD"]
         };
 
         const META = {
-            // Crypto
+            // Crypto (Pre-defined icons)
             BTCUSDT: {sym: "BTC", img: "https://assets.coincap.io/assets/icons/btc@2x.png"},
             ETHUSDT: {sym: "ETH", img: "https://assets.coincap.io/assets/icons/eth@2x.png"},
             BNBUSDT: {sym: "BNB", img: "https://assets.coincap.io/assets/icons/bnb@2x.png"},
@@ -226,17 +226,54 @@
                  return 'http://localhost:3001';
             }
             // For production (VPS), return empty string to use relative path '/api'
-            // or window.location.origin if preferred. Relative is safest for proxying.
             return ''; 
         }
 
         // Use lists.crypto as the source of truth
-        
-        // Initial state - Keys only, values will be fetched
         let cryptoData = {};
-        lists.crypto.forEach(s => {
-            cryptoData[s] = { symbol: s, lastPrice: 0, priceChangePercent: 0 };
-        });
+
+        async function fetchTopPairs() {
+            try {
+                // Fetch top pairs from Binance
+                const res = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+                const data = await res.json();
+                
+                // Filter for USDT pairs, exclude leverage tokens if possible
+                // Sort by volume (quoteVolume)
+                const topPairs = data
+                    .filter(t => t.symbol.endsWith('USDT') && !t.symbol.includes('UP') && !t.symbol.includes('DOWN') && !t.symbol.includes('BULL') && !t.symbol.includes('BEAR'))
+                    .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
+                    .slice(0, 50); // Top 50 by volume
+                
+                lists.crypto = topPairs.map(t => t.symbol);
+                
+                // Update prices map immediately with REST data
+                topPairs.forEach(t => {
+                    const price = parseFloat(t.lastPrice);
+                    const change = parseFloat(t.priceChangePercent);
+                    const volume = parseFloat(t.quoteVolume);
+                    
+                    cryptoData[t.symbol] = {
+                        symbol: t.symbol,
+                        lastPrice: price,
+                        priceChangePercent: change,
+                        volume: volume
+                    };
+                    prices.set(t.symbol, cryptoData[t.symbol]);
+                });
+                
+                renderList();
+                initWebSocket(); // Re-init WS with new list
+            } catch (e) {
+                console.error("Failed to fetch top pairs", e);
+                // Fallback to hardcoded if fetch fails
+                if(lists.crypto.length === 0) {
+                    lists.crypto = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "SOLUSDT", "ADAUSDT", "DOGEUSDT"];
+                }
+                renderList();
+                initWebSocket();
+            }
+        }
 
         // WebSocket for Crypto
         let ws = null;
@@ -245,13 +282,15 @@
                 if(ws) { ws.close(); ws = null; }
                 return;
             }
+            // Only start if we have a list
+            if(lists.crypto.length === 0) return;
+            
             if(ws && ws.readyState === WebSocket.OPEN) return;
 
-            // Immediate initial fetch
-            fetchPricesRest();
-
             // Use Combined Streams for reliability (port 443)
-            const streams = lists.crypto.map(s => s.toLowerCase() + '@ticker').join('/');
+            // Limit to first 20 for WS stream length limits if needed, but 50 usually works
+            const streamList = lists.crypto.slice(0, 50);
+            const streams = streamList.map(s => s.toLowerCase() + '@ticker').join('/');
             ws = new WebSocket(`wss://stream.binance.com/stream?streams=${streams}`);
             
             ws.onopen = () => {
@@ -263,13 +302,14 @@
                     // msg format: { stream: "btcusdt@ticker", data: { ... } }
                     const data = msg.data;
 
-                    if(data && data.e === '24hrTicker' && lists.crypto.includes(data.s)) {
-                        if(!cryptoData[data.s]) cryptoData[data.s] = {};
-                        cryptoData[data.s].lastPrice = parseFloat(data.c);
-                        cryptoData[data.s].priceChangePercent = parseFloat(data.P);
-                        cryptoData[data.s].volume = parseFloat(data.v); 
+                    if(data && data.e === '24hrTicker') {
+                        const s = data.s;
+                        if(!cryptoData[s]) cryptoData[s] = {};
+                        cryptoData[s].lastPrice = parseFloat(data.c);
+                        cryptoData[s].priceChangePercent = parseFloat(data.P);
+                        cryptoData[s].volume = parseFloat(data.q); // q is quote volume in USDT
                         
-                        prices.set(data.s, cryptoData[data.s]);
+                        prices.set(s, cryptoData[s]);
                         
                         requestAnimationFrame(renderList);
                     }
@@ -277,8 +317,6 @@
             };
             ws.onerror = (e) => {
                 console.error("WS Error", e);
-                // Fallback to REST if WS fails
-                fetchPricesRest();
             };
             ws.onclose = () => {
                 console.log("WS Closed");
@@ -286,32 +324,18 @@
             };
         }
 
-        async function fetchPricesRest() {
-             try {
-                 const symbolsParam = JSON.stringify(lists.crypto);
-                 // Fetch from Backend /api/markets
-                 const url = `${window.location.origin}/api/markets?symbols=${encodeURIComponent(symbolsParam)}`;
-                 const res = await fetch(url);
-                 if (!res.ok) throw new Error("Backend API Failed");
-                 const allData = await res.json();
-                 
-                 if(Array.isArray(allData)) {
-                    allData.forEach(d => {
-                        if(d && d.symbol && lists.crypto.includes(d.symbol)) {
-                            cryptoData[d.symbol] = d;
-                            prices.set(d.symbol, d);
-                        }
-                    });
-                    renderList();
-                 }
-             } catch (e) { 
-                 console.log("Backend fetch failed:", e); 
-             }
-        }
-
         // Old fetchPrices adapted for other categories
         function fetchPricesOther(category) {
             updateMockData(category);
+        }
+
+        function getColorHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+            return '#' + "00000".substring(0, 6 - c.length) + c;
         }
 
         function renderList() {
@@ -321,7 +345,17 @@
             if(!container) return;
             
             const html = symbols.map(s => {
-                const meta = META[s] || {sym: s, bg:"#999", text:s[0]};
+                let meta = META[s];
+                if (!meta) {
+                    // Generate fallback meta
+                    const base = s.replace('USDT', '');
+                    meta = {
+                        sym: base,
+                        bg: getColorHash(base),
+                        text: base[0]
+                    };
+                }
+                
                 const data = prices.get(s) || cryptoData[s] || {};
                 let last = parseFloat(data.lastPrice);
                 if (isNaN(last)) last = 0;
@@ -332,7 +366,7 @@
                 let chg = parseFloat(data.priceChangePercent);
                 if (isNaN(chg)) chg = 0;
                 
-                const chgColor = chg >= 0 ? "bg-green-custom" : "bg-red-500";
+                const chgColor = chg >= 0 ? "bg-green-custom" : "bg-red-custom";
                 const chgSign = chg >= 0 ? "+" : "";
                 
                 // Format price based on magnitude
@@ -346,7 +380,12 @@
                     if(last < 0.001) lastStr = last.toFixed(6);
                 }
 
-                const volStr = vol ? vol.toLocaleString(undefined,{maximumFractionDigits:0}) : "0";
+                // Volume formatting (K, M, B)
+                let volStr = "0";
+                if(vol > 1000000000) volStr = (vol/1000000000).toFixed(2) + "B";
+                else if(vol > 1000000) volStr = (vol/1000000).toFixed(2) + "M";
+                else if(vol > 1000) volStr = (vol/1000).toFixed(2) + "K";
+                else volStr = vol.toFixed(0);
                 
                 let iconHtml = '';
                 if (meta.img) {
@@ -357,9 +396,10 @@
                     const bgStyle = meta.bg && meta.bg.startsWith('#') ? `style="background-color:${meta.bg}"` : '';
                     iconHtml = `<div class="w-8 h-8 rounded-full flex items-center justify-center text-white mr-2 text-xs font-bold ${bgClass}" ${bgStyle}>${iconInner}</div>`;
                 }
-
+                
+                // Link to Transaction (Spot) page
                 return `
-                <div class="flex items-center justify-between cursor-pointer" onclick="window.location.href='futures.html?symbol=${s}'">
+                <div class="flex items-center justify-between cursor-pointer" onclick="window.location.href='transaction.html?symbol=${s}'">
                     <div class="flex items-center w-1/3">
                         ${iconHtml}
                         <div>
@@ -386,8 +426,9 @@
 
         async function refresh() {
             if(currentTab === 'crypto') {
-                // WS handles it
-                initWebSocket();
+                // If empty, try fetch
+                if(lists.crypto.length === 0) await fetchTopPairs();
+                else initWebSocket();
             } else {
                 fetchPricesOther(currentTab);
                 renderList();
@@ -408,9 +449,7 @@
 
         // Initial setup
         if(currentTab === 'crypto') {
-            renderList(); // Render immediately with mock data
-            initWebSocket();
-            fetchPricesRest(); // Try to get fresh snapshot
+            fetchTopPairs();
         }
     </script>
 </body>

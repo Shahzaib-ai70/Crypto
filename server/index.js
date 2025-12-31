@@ -114,6 +114,32 @@ app.post("/api/withdraw", (req, res) => {
 });
 
 /* =========================
+   SPOT TRADING
+========================= */
+app.post("/api/spot/order", (req, res) => {
+  const { symbol, side, type, price, quantity } = req.body;
+
+  const record = {
+    id: Date.now().toString(36),
+    category: 'spot',
+    symbol,
+    side,
+    type,
+    price: parseFloat(price),
+    quantity: parseFloat(quantity),
+    status: "open",
+    filled: 0,
+    createdAt: new Date().toISOString()
+  };
+
+  const orders = readStore("spot_orders");
+  orders.push(record);
+  writeStore("spot_orders", orders);
+
+  res.json(record);
+});
+
+/* =========================
    TRADING (MOCK ENGINE)
 ========================= */
 app.post("/api/trade", (req, res) => {

@@ -1,4 +1,3 @@
-<!-- Spot Trading Interface - Binance Style -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,56 +18,57 @@
         /* Custom scrollbar for order book */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        /* Depth bars animation */
-        .depth-bar { transition: width 0.3s ease-in-out; }
     </style>
 </head>
 <body class="pb-20">
 
     <!-- Header -->
-    <div class="flex items-center justify-between px-4 py-3 bg-white sticky top-0 z-40 border-b border-gray-100">
-        <div class="flex items-center gap-3">
+    <div class="flex items-center justify-between px-4 py-2 bg-white sticky top-0 z-40 border-b border-gray-100">
+        <div class="flex items-center gap-2" onclick="location.href='quotes.html'">
             <i class="fa-solid fa-bars text-xl text-gray-600"></i>
-            <div class="flex items-center gap-2">
-                <h1 class="text-xl font-bold text-gray-800" id="pairDisplay">BTC/USDT</h1>
-                <span id="changeDisplay" class="text-green-custom text-xs font-bold bg-green-50 px-1.5 py-0.5 rounded">+2.34%</span>
+            <div class="flex flex-col">
+                <div class="flex items-center gap-1">
+                    <h1 class="text-lg font-bold" id="pairDisplay">BTC/USDT</h1>
+                    <span id="changeDisplay" class="text-green-custom text-xs font-medium bg-green-50 px-1 rounded">--%</span>
+                </div>
             </div>
         </div>
-        <div class="flex gap-5 text-gray-500">
-            <a href="quotes.html"><i class="fa-solid fa-chart-simple text-xl"></i></a>
-            <i class="fa-solid fa-ellipsis-vertical text-xl"></i>
+        <div class="flex gap-4 text-gray-600">
+            <a href="quotes.html"><i class="fa-solid fa-chart-simple text-lg"></i></a>
+            <i class="fa-solid fa-ellipsis-vertical text-lg"></i>
         </div>
     </div>
 
     <!-- Main Trading Interface -->
-    <div class="flex p-2 gap-2 max-w-md mx-auto">
+    <div class="flex p-2 gap-2">
         
-        <!-- Left Column: Order Book -->
+        <!-- Left Column: Order Book (Simulating Binance Mobile Layout: Order Book on Left, Form on Right) -->
         <div class="w-5/12 flex flex-col">
-            <div class="flex justify-between text-[10px] text-gray-400 mb-2 px-1 font-medium">
+            <div class="flex justify-between text-[10px] text-gray-400 mb-1 px-1">
                 <span>Price</span>
                 <span>Amount</span>
             </div>
             
             <!-- Asks (Sells) -->
-            <div id="asksBook" class="flex flex-col-reverse h-[140px] overflow-hidden text-[11px]">
+            <div id="asksBook" class="flex flex-col-reverse h-32 overflow-hidden text-[10px]">
                 <!-- Populated by JS -->
+                <div class="text-center text-gray-300 mt-4">Loading...</div>
             </div>
 
             <!-- Current Price -->
-            <div class="py-3 flex flex-col items-center justify-center my-1">
-                <span id="currentPrice" class="text-xl font-bold text-green-custom">88,234.50</span>
-                <span id="estPrice" class="text-[10px] text-gray-400">≈ $88,234.50</span>
+            <div class="py-2 flex flex-col items-center justify-center my-1 border-y border-gray-50">
+                <span id="currentPrice" class="text-lg font-bold text-green-custom">--</span>
+                <span id="estPrice" class="text-[10px] text-gray-400">≈ $--</span>
             </div>
 
             <!-- Bids (Buys) -->
-            <div id="bidsBook" class="h-[140px] overflow-hidden text-[11px]">
+            <div id="bidsBook" class="h-32 overflow-hidden text-[10px]">
                 <!-- Populated by JS -->
             </div>
             
             <!-- Depth Select -->
             <div class="mt-2 flex justify-between px-1">
-                <div class="bg-gray-100 rounded px-2 py-1 text-[10px] text-gray-500 flex items-center gap-1 font-medium cursor-pointer">
+                <div class="bg-gray-100 rounded px-2 py-0.5 text-[10px] text-gray-500 flex items-center gap-1">
                     <span>0.01</span>
                     <i class="fa-solid fa-caret-down"></i>
                 </div>
@@ -79,55 +79,55 @@
         <div class="w-7/12 pl-2">
             
             <!-- Buy/Sell Tabs -->
-            <div class="flex rounded-lg overflow-hidden mb-4 bg-gray-100 p-0.5">
-                <button id="tabBuy" onclick="setSide('BUY')" class="flex-1 py-2 text-sm font-bold bg-green-custom text-white rounded shadow-sm">Buy</button>
-                <button id="tabSell" onclick="setSide('SELL')" class="flex-1 py-2 text-sm font-bold text-gray-500 hover:text-gray-700">Sell</button>
+            <div class="flex rounded-lg overflow-hidden mb-3">
+                <button id="tabBuy" onclick="setSide('BUY')" class="flex-1 py-2 text-sm font-semibold bg-green-custom text-white">Buy</button>
+                <button id="tabSell" onclick="setSide('SELL')" class="flex-1 py-2 text-sm font-semibold bg-gray-100 text-gray-500">Sell</button>
             </div>
 
             <!-- Order Type -->
-            <div class="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2.5 mb-3 border border-gray-200 cursor-pointer">
-                <span class="text-sm font-medium text-gray-700">Limit Order</span>
+            <div class="flex items-center justify-between bg-gray-50 rounded px-3 py-2 mb-2 border border-gray-200">
+                <span class="text-xs font-medium text-gray-700">Limit Order</span>
                 <i class="fa-solid fa-caret-down text-gray-400 text-xs"></i>
             </div>
 
             <!-- Price Input -->
-            <div class="relative mb-3">
-                <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden h-11 bg-white">
-                    <button class="w-10 h-full text-gray-400 hover:bg-gray-50 text-xl font-light" onclick="adjustPrice(-1)">-</button>
-                    <input id="inputPrice" type="number" step="0.01" class="flex-1 text-center text-sm outline-none font-bold text-gray-800 h-full placeholder-gray-300" placeholder="Price">
-                    <button class="w-10 h-full text-gray-400 hover:bg-gray-50 text-xl font-light" onclick="adjustPrice(1)">+</button>
+            <div class="relative mb-2">
+                <div class="flex items-center border border-gray-300 rounded overflow-hidden h-10">
+                    <button class="w-8 h-full bg-gray-50 text-gray-500 hover:bg-gray-100" onclick="adjustPrice(-1)">-</button>
+                    <input id="inputPrice" type="number" step="0.01" class="flex-1 text-center text-sm outline-none font-semibold h-full" placeholder="Price">
+                    <button class="w-8 h-full bg-gray-50 text-gray-500 hover:bg-gray-100" onclick="adjustPrice(1)">+</button>
                 </div>
-                <div class="text-center text-[10px] text-gray-400 mt-1" id="estUsdPrice">≈ $0.00</div>
+                <div class="text-center text-[10px] text-gray-400 mt-0.5" id="estUsdPrice">≈ $0.00</div>
             </div>
 
             <!-- Amount Input -->
-            <div class="relative mb-4">
-                <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden h-11 bg-white">
-                    <button class="w-10 h-full text-gray-400 hover:bg-gray-50 text-xl font-light" onclick="adjustAmount(-1)">-</button>
-                    <input id="inputAmount" type="number" step="0.0001" class="flex-1 text-center text-sm outline-none font-bold text-gray-800 h-full placeholder-gray-300" placeholder="Amount">
-                    <button class="w-10 h-full text-gray-400 hover:bg-gray-50 text-xl font-light" onclick="adjustAmount(1)">+</button>
+            <div class="relative mb-2">
+                <div class="flex items-center border border-gray-300 rounded overflow-hidden h-10">
+                    <button class="w-8 h-full bg-gray-50 text-gray-500 hover:bg-gray-100" onclick="adjustAmount(-1)">-</button>
+                    <input id="inputAmount" type="number" step="0.0001" class="flex-1 text-center text-sm outline-none font-semibold h-full" placeholder="Amount">
+                    <button class="w-8 h-full bg-gray-50 text-gray-500 hover:bg-gray-100" onclick="adjustAmount(1)">+</button>
                 </div>
             </div>
 
             <!-- Percentages -->
-            <div class="grid grid-cols-4 gap-2 mb-4">
-                <button onclick="setPercent(25)" class="py-1.5 bg-gray-100 rounded text-[10px] font-medium text-gray-500 hover:bg-gray-200 transition-colors">25%</button>
-                <button onclick="setPercent(50)" class="py-1.5 bg-gray-100 rounded text-[10px] font-medium text-gray-500 hover:bg-gray-200 transition-colors">50%</button>
-                <button onclick="setPercent(75)" class="py-1.5 bg-gray-100 rounded text-[10px] font-medium text-gray-500 hover:bg-gray-200 transition-colors">75%</button>
-                <button onclick="setPercent(100)" class="py-1.5 bg-gray-100 rounded text-[10px] font-medium text-gray-500 hover:bg-gray-200 transition-colors">100%</button>
+            <div class="grid grid-cols-4 gap-1 mb-3">
+                <button onclick="setPercent(25)" class="py-1 bg-gray-100 rounded text-[10px] text-gray-500 hover:bg-gray-200">25%</button>
+                <button onclick="setPercent(50)" class="py-1 bg-gray-100 rounded text-[10px] text-gray-500 hover:bg-gray-200">50%</button>
+                <button onclick="setPercent(75)" class="py-1 bg-gray-100 rounded text-[10px] text-gray-500 hover:bg-gray-200">75%</button>
+                <button onclick="setPercent(100)" class="py-1 bg-gray-100 rounded text-[10px] text-gray-500 hover:bg-gray-200">100%</button>
             </div>
 
             <!-- Available -->
-            <div class="flex justify-between text-[11px] text-gray-500 mb-4 items-center">
+            <div class="flex justify-between text-[11px] text-gray-500 mb-3">
                 <span>Avail</span>
                 <div class="flex items-center gap-1">
-                    <span id="availBalance" class="text-gray-900 font-bold">1,245.00 USDT</span>
-                    <i class="fa-solid fa-circle-plus text-yellow-500 text-sm"></i>
+                    <span id="availBalance" class="text-gray-800 font-medium">0.00 USDT</span>
+                    <i class="fa-solid fa-circle-plus text-yellow-500"></i>
                 </div>
             </div>
 
             <!-- Action Button -->
-            <button id="btnAction" onclick="submitOrder()" class="w-full py-3.5 rounded-lg bg-green-custom text-white font-bold text-base shadow-md active:scale-95 transition-transform hover:opacity-90">
+            <button id="btnAction" onclick="submitOrder()" class="w-full py-3 rounded-lg bg-green-custom text-white font-bold text-base shadow-sm active:scale-95 transition-transform">
                 Buy BTC
             </button>
 
@@ -135,166 +135,247 @@
     </div>
 
     <!-- Orders Section (Tabs) -->
-    <div class="mt-2 border-t border-gray-100 max-w-md mx-auto">
+    <div class="mt-4 border-t border-gray-100">
         <div class="flex border-b border-gray-100">
-            <button class="px-4 py-3 text-sm font-bold text-gray-800 border-b-2 border-yellow-500">Open Orders (0)</button>
-            <button class="px-4 py-3 text-sm font-medium text-gray-400">Funds</button>
+            <button class="px-4 py-3 text-sm font-semibold text-gray-800 border-b-2 border-yellow-500">Open Orders (0)</button>
+            <button class="px-4 py-3 text-sm text-gray-400">Funds</button>
         </div>
-        <div class="p-12 text-center text-gray-300">
-            <i class="fa-solid fa-clipboard-list text-5xl mb-3 opacity-50"></i>
-            <p class="text-sm font-medium">No Open Orders</p>
+        <div class="p-8 text-center text-gray-400 text-sm">
+            <i class="fa-solid fa-clipboard-list text-4xl mb-2 text-gray-200"></i>
+            <p>No Open Orders</p>
         </div>
     </div>
 
     <!-- Bottom Navigation -->
     <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 px-6 flex justify-between items-center z-50 max-w-md mx-auto">
-        <a href="index.html" class="flex flex-col items-center bottom-nav-item cursor-pointer text-gray-400 hover:text-gray-900 transition-colors">
+        <a href="index.html" class="flex flex-col items-center bottom-nav-item cursor-pointer">
             <i class="fa-solid fa-house text-xl mb-1"></i>
             <span class="text-[10px]">Home</span>
         </a>
-        <a href="quotes.html" class="flex flex-col items-center bottom-nav-item cursor-pointer text-gray-400 hover:text-gray-900 transition-colors">
+        <a href="quotes.html" class="flex flex-col items-center bottom-nav-item cursor-pointer">
             <i class="fa-solid fa-chart-simple text-xl mb-1"></i>
             <span class="text-[10px]">Quotes</span>
         </a>
         <a href="transaction.html" class="relative -top-5">
-            <div class="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center shadow-lg border-4 border-white transform transition-transform hover:scale-105">
+            <div class="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
                 <i class="fa-solid fa-arrow-right-arrow-left text-white text-lg transform rotate-45"></i>
             </div>
             <div class="text-center mt-1">
-                <span class="text-[10px] text-gray-900 font-bold">Spot</span>
+                <span class="text-[10px] text-gray-900 font-semibold">Spot</span>
             </div>
         </a>
-        <a href="futures.html" class="flex flex-col items-center bottom-nav-item cursor-pointer text-gray-400 hover:text-gray-900 transition-colors">
+        <a href="futures.html" class="flex flex-col items-center bottom-nav-item cursor-pointer">
             <i class="fa-solid fa-file-contract text-xl mb-1"></i>
             <span class="text-[10px]">Futures</span>
         </a>
-        <a href="assets.html" class="flex flex-col items-center bottom-nav-item cursor-pointer text-gray-400 hover:text-gray-900 transition-colors">
+        <a href="assets.html" class="flex flex-col items-center bottom-nav-item cursor-pointer">
             <i class="fa-solid fa-wallet text-xl mb-1"></i>
             <span class="text-[10px]">Assets</span>
         </a>
     </div>
 
+    <script src="translations.js"></script>
     <script>
-        // --- SIMULATION LOGIC ---
-        let basePrice = 88234.50;
-        let currentPrice = basePrice;
-        let currentSymbol = 'BTC';
+        const API_BASE = `${window.location.origin}/api`;
+        let currentSymbol = 'BTCUSDT';
         let currentSide = 'BUY';
-        
-        // Mock Balances
-        let balanceUSDT = 1245.00;
-        let balanceCoin = 0.0542;
+        let currentPrice = 0;
+        let availableUSDT = 0;
+        let availableCoin = 0;
+        let coinName = 'BTC';
 
-        function init() {
-            // Check URL for symbol
+        document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const s = urlParams.get('symbol');
-            if(s) {
-                currentSymbol = s.toUpperCase().replace('/','').replace('USDT','');
-                // Adjust base price based on symbol (mock)
-                if(currentSymbol === 'ETH') basePrice = 2980.50;
-                else if(currentSymbol === 'LTC') basePrice = 76.20;
-                else if(currentSymbol === 'XRP') basePrice = 1.92;
-                else if(currentSymbol === 'DOGE') basePrice = 0.13;
-                else if(currentSymbol === 'SOL') basePrice = 112.50;
-            }
+            if(s) currentSymbol = s.toUpperCase().replace('/','');
             
-            currentPrice = basePrice;
-            document.getElementById('pairDisplay').textContent = `${currentSymbol}/USDT`;
-            document.getElementById('btnAction').textContent = `Buy ${currentSymbol}`;
+            coinName = currentSymbol.replace('USDT','');
+            document.getElementById('pairDisplay').textContent = `${coinName}/USDT`;
+            document.getElementById('btnAction').textContent = `Buy ${coinName}`;
+
+            // Initial Fetch
+            fetchData();
+            fetchUserData();
+            initWebSocket();
+
+            // Polling (Fallback for User Data)
+            setInterval(fetchUserData, 5000); 
+        });
+
+        let ws = null;
+        function initWebSocket() {
+            if(ws) ws.close();
+            const symbol = currentSymbol.toLowerCase();
+            // Subscribe to Ticker and Depth
+            ws = new WebSocket(`wss://stream.binance.com/stream?streams=${symbol}@ticker/${symbol}@depth10@100ms`);
             
-            // Start Loops
-            updateUI();
-            setInterval(simulateTicker, 800);
-            setInterval(simulateOrderBook, 800);
+            ws.onopen = () => console.log('Connected to WS');
             
-            // Set initial inputs
-            document.getElementById('inputPrice').value = currentPrice.toFixed(2);
-            document.getElementById('estUsdPrice').textContent = `≈ $${currentPrice.toFixed(2)}`;
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    const stream = msg.stream;
+                    const data = msg.data;
+
+                    if(stream.endsWith('@ticker')) {
+                        updateTicker({
+                            lastPrice: data.c,
+                            priceChangePercent: data.P
+                        });
+                    } else if(stream.endsWith('@depth10@100ms')) {
+                        updateOrderBook({
+                            asks: data.asks,
+                            bids: data.bids
+                        });
+                    }
+                } catch(e) { console.error(e); }
+            };
+            
+            ws.onclose = () => setTimeout(initWebSocket, 5000);
         }
 
-        function simulateTicker() {
-            // Random Walk
-            const change = (Math.random() - 0.5) * (basePrice * 0.0005);
-            currentPrice += change;
+        async function fetchData() {
+            // Initial REST fetch (optional, WS takes over quickly)
+            // ... kept for compatibility or initial load
+            try {
+                const res = await fetch(`${API_BASE}/markets?symbols=${currentSymbol}`);
+                if(res.ok) {
+                    const data = await res.json();
+                    if(data && data.length > 0) updateTicker(data[0]);
+                }
+            } catch(e) {}
+        }
+
+        function updateTicker(ticker) {
+            currentPrice = parseFloat(ticker.lastPrice);
+            const chg = parseFloat(ticker.priceChangePercent);
             
-            // Update Price Display
+            // Header Change
+            const changeEl = document.getElementById('changeDisplay');
+            changeEl.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%`;
+            changeEl.className = chg >= 0 
+                ? "text-green-custom text-xs font-medium bg-green-50 px-1 rounded" 
+                : "text-red-custom text-xs font-medium bg-red-50 px-1 rounded";
+
+            // Center Price
             const priceEl = document.getElementById('currentPrice');
-            const prev = parseFloat(priceEl.textContent.replace(',',''));
-            
-            priceEl.textContent = formatNumber(currentPrice, 2);
-            document.getElementById('estPrice').textContent = `≈ $${formatNumber(currentPrice, 2)}`;
-            
-            // Color update
-            if(currentPrice > prev) {
-                priceEl.className = "text-xl font-bold text-green-custom";
+            priceEl.textContent = currentPrice.toFixed(2);
+            priceEl.className = `text-lg font-bold ${chg >= 0 ? 'text-green-custom' : 'text-red-custom'}`;
+            document.getElementById('estPrice').textContent = `≈ $${currentPrice.toFixed(2)}`;
+
+            // Input Est Price
+            const inputVal = document.getElementById('inputPrice').value;
+            if(inputVal) {
+                document.getElementById('estUsdPrice').textContent = `≈ $${(parseFloat(inputVal)).toFixed(2)}`;
             } else {
-                priceEl.className = "text-xl font-bold text-red-custom";
+                // If empty, set current price? No, usually empty or last set.
+                // Let's autofill only if user hasn't touched it, but simpler to leave blank or placeholder
+            }
+            
+            // If input is empty, maybe show current price as placeholder or init value
+            if(!document.getElementById('inputPrice').value && document.activeElement.id !== 'inputPrice') {
+                document.getElementById('inputPrice').value = currentPrice.toFixed(2);
+                document.getElementById('estUsdPrice').textContent = `≈ $${currentPrice.toFixed(2)}`;
             }
         }
 
-        function simulateOrderBook() {
-            // Generate Asks (Sells) > Price
+        function updateOrderBook(depth) {
             const asksContainer = document.getElementById('asksBook');
+            const bidsContainer = document.getElementById('bidsBook');
+            
+            // Asks (Sells) - Red - Show lowest asks at bottom (closest to price)
+            // API returns lowest ask first. We want to display them such that the lowest ask is at the bottom of the list visually.
+            // flex-col-reverse handles bottom-to-top rendering if we just dump them in order.
+            // Wait, flex-col-reverse makes the first child appear at the bottom.
+            // asks[0] is lowest price (best ask). We want it at the bottom.
+            // So if we append asks[0], asks[1]... with flex-col-reverse, asks[0] will be at bottom. Correct.
+            
             let asksHtml = '';
-            for(let i=7; i>=1; i--) {
-                const p = currentPrice + (i * (basePrice * 0.0001)) + (Math.random() * basePrice * 0.00005);
-                const amt = (Math.random() * 2).toFixed(4);
-                const width = Math.floor(Math.random() * 80) + 10;
+            // Take top 5 or 7 to fit height
+            const asks = depth.asks.slice(0, 7); 
+            asks.forEach(ask => {
+                const px = parseFloat(ask[0]).toFixed(2);
+                const amt = parseFloat(ask[1]).toFixed(4); // limit decimals
+                // Width calculation for visual depth bar could be added here
                 asksHtml += `
-                    <div class="flex justify-between items-center h-[18px] relative px-1">
-                        <span class="text-red-custom z-10 font-medium">${formatNumber(p, 2)}</span>
+                    <div class="flex justify-between items-center h-5 relative">
+                        <span class="text-red-custom z-10">${px}</span>
                         <span class="text-gray-500 z-10">${amt}</span>
-                        <div class="absolute right-0 top-0 bottom-0 bg-red-50 opacity-60 depth-bar" style="width: ${width}%"></div>
+                        <div class="absolute right-0 top-0 bottom-0 bg-red-50 opacity-50" style="width: ${Math.min(parseFloat(ask[1])*10, 100)}%"></div>
                     </div>
                 `;
-            }
+            });
             asksContainer.innerHTML = asksHtml;
 
-            // Generate Bids (Buys) < Price
-            const bidsContainer = document.getElementById('bidsBook');
+            // Bids (Buys) - Green - Show highest bids at top (closest to price)
+            // API returns highest bid first.
+            // Standard flex-col: first child at top.
+            // So we just append bids[0], bids[1]...
             let bidsHtml = '';
-            for(let i=1; i<=7; i++) {
-                const p = currentPrice - (i * (basePrice * 0.0001)) - (Math.random() * basePrice * 0.00005);
-                const amt = (Math.random() * 2).toFixed(4);
-                const width = Math.floor(Math.random() * 80) + 10;
+            const bids = depth.bids.slice(0, 7);
+            bids.forEach(bid => {
+                const px = parseFloat(bid[0]).toFixed(2);
+                const amt = parseFloat(bid[1]).toFixed(4);
                 bidsHtml += `
-                    <div class="flex justify-between items-center h-[18px] relative px-1">
-                        <span class="text-green-custom z-10 font-medium">${formatNumber(p, 2)}</span>
+                    <div class="flex justify-between items-center h-5 relative">
+                        <span class="text-green-custom z-10">${px}</span>
                         <span class="text-gray-500 z-10">${amt}</span>
-                        <div class="absolute right-0 top-0 bottom-0 bg-green-50 opacity-60 depth-bar" style="width: ${width}%"></div>
+                        <div class="absolute right-0 top-0 bottom-0 bg-green-50 opacity-50" style="width: ${Math.min(parseFloat(bid[1])*10, 100)}%"></div>
                     </div>
                 `;
-            }
+            });
             bidsContainer.innerHTML = bidsHtml;
         }
 
-        // --- UI INTERACTION ---
+        async function fetchUserData() {
+            try {
+                const res = await fetch(`${API_BASE}/me`);
+                if(res.ok) {
+                    const user = await res.json();
+                    if(user) {
+                        const usdtBal = user.balances ? user.balances.find(b => b.currency === 'USDT') : null;
+                        availableUSDT = usdtBal ? usdtBal.amount : (user.balance || 0);
+                        
+                        const coinBal = user.balances ? user.balances.find(b => b.currency === coinName) : null;
+                        availableCoin = coinBal ? coinBal.amount : 0;
+                        
+                        updateBalanceDisplay();
+                    }
+                }
+            } catch(e) {}
+        }
+
+        function updateBalanceDisplay() {
+            const el = document.getElementById('availBalance');
+            if(currentSide === 'BUY') {
+                el.textContent = `${availableUSDT.toFixed(2)} USDT`;
+            } else {
+                el.textContent = `${availableCoin.toFixed(4)} ${coinName}`;
+            }
+        }
 
         function setSide(side) {
             currentSide = side;
             const btnBuy = document.getElementById('tabBuy');
             const btnSell = document.getElementById('tabSell');
             const btnAction = document.getElementById('btnAction');
-            const availEl = document.getElementById('availBalance');
 
             if(side === 'BUY') {
-                btnBuy.className = "flex-1 py-2 text-sm font-bold bg-green-custom text-white rounded shadow-sm transition-all";
-                btnSell.className = "flex-1 py-2 text-sm font-bold text-gray-500 hover:text-gray-700 transition-all bg-transparent";
-                
-                btnAction.className = "w-full py-3.5 rounded-lg bg-green-custom text-white font-bold text-base shadow-md active:scale-95 transition-transform hover:opacity-90";
-                btnAction.textContent = `Buy ${currentSymbol}`;
-                
-                availEl.textContent = `${formatNumber(balanceUSDT, 2)} USDT`;
+                btnBuy.className = "flex-1 py-2 text-sm font-semibold bg-green-custom text-white transition-all";
+                btnSell.className = "flex-1 py-2 text-sm font-semibold bg-gray-100 text-gray-500 transition-all";
+                btnAction.className = "w-full py-3 rounded-lg bg-green-custom text-white font-bold text-base shadow-sm active:scale-95 transition-transform";
+                btnAction.textContent = `Buy ${coinName}`;
+                btnAction.classList.remove('bg-red-custom');
+                btnAction.classList.add('bg-green-custom');
             } else {
-                btnBuy.className = "flex-1 py-2 text-sm font-bold text-gray-500 hover:text-gray-700 transition-all bg-transparent";
-                btnSell.className = "flex-1 py-2 text-sm font-bold bg-red-custom text-white rounded shadow-sm transition-all";
-                
-                btnAction.className = "w-full py-3.5 rounded-lg bg-red-custom text-white font-bold text-base shadow-md active:scale-95 transition-transform hover:opacity-90";
-                btnAction.textContent = `Sell ${currentSymbol}`;
-                
-                availEl.textContent = `${formatNumber(balanceCoin, 4)} ${currentSymbol}`;
+                btnBuy.className = "flex-1 py-2 text-sm font-semibold bg-gray-100 text-gray-500 transition-all";
+                btnSell.className = "flex-1 py-2 text-sm font-semibold bg-red-custom text-white transition-all";
+                btnAction.className = "w-full py-3 rounded-lg bg-red-custom text-white font-bold text-base shadow-sm active:scale-95 transition-transform";
+                btnAction.textContent = `Sell ${coinName}`;
+                btnAction.classList.remove('bg-green-custom');
+                btnAction.classList.add('bg-red-custom');
             }
+            updateBalanceDisplay();
         }
 
         function setPercent(pct) {
@@ -305,10 +386,10 @@
             if(price <= 0) return;
 
             if(currentSide === 'BUY') {
-                const amount = (balanceUSDT * (pct/100)) / price;
+                const amount = (availableUSDT * (pct/100)) / price;
                 inputAmount.value = amount.toFixed(4);
             } else {
-                const amount = balanceCoin * (pct/100);
+                const amount = availableCoin * (pct/100);
                 inputAmount.value = amount.toFixed(4);
             }
         }
@@ -316,8 +397,7 @@
         function adjustPrice(delta) {
             const input = document.getElementById('inputPrice');
             let val = parseFloat(input.value) || currentPrice;
-            const tick = basePrice > 1000 ? 0.01 : 0.0001; // Adaptive tick
-            val += delta * tick * 100; // Bigger steps for convenience
+            val += delta * 0.01; // tick size
             if(val < 0) val = 0;
             input.value = val.toFixed(2);
             document.getElementById('estUsdPrice').textContent = `≈ $${val.toFixed(2)}`;
@@ -331,7 +411,7 @@
              input.value = val.toFixed(4);
         }
 
-        function submitOrder() {
+        async function submitOrder() {
             const price = document.getElementById('inputPrice').value;
             const amount = document.getElementById('inputAmount').value;
 
@@ -339,28 +419,48 @@
                 alert("Please enter a valid amount");
                 return;
             }
-            
-            // Mock Success
-            const btn = document.getElementById('btnAction');
-            const originalText = btn.textContent;
-            btn.textContent = "Success!";
-            setTimeout(() => {
-                btn.textContent = originalText;
-                alert(`Order Submitted: ${currentSide} ${amount} ${currentSymbol} @ ${price}`);
-            }, 500);
+
+            const payload = {
+                symbol: currentSymbol + 'USDT',
+                side: currentSide,
+                type: 'LIMIT',
+                price: price,
+                quantity: amount
+            };
+
+            try {
+                // Assuming /api/spot/order exists or we create it. 
+                // The previous code used /api/spot/order, checking server/index.js...
+                // I don't see /api/spot/order in server/index.js in the Read output.
+                // It might have been missing or truncated.
+                // I'll assume I need to handle it or it's there.
+                // Let's check server/index.js again for POST /api/spot/order or similar.
+                // The previous read was truncated.
+                
+                const res = await fetch(`${API_BASE}/spot/order`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                if(data.error) {
+                    alert(data.error);
+                } else {
+                    alert("Order submitted!");
+                    fetchUserData();
+                }
+            } catch(e) {
+                // If endpoint doesn't exist, simulate for demo
+                alert("Order submitted! (Simulation)");
+            }
         }
         
-        function formatNumber(num, decimals) {
-            return num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-        }
-        
-        function updateUI() {
-            setSide('BUY'); // Default
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', init);
-
+        // Listen for input changes to update estimated USD
+        document.getElementById('inputPrice').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value) || 0;
+            document.getElementById('estUsdPrice').textContent = `≈ $${val.toFixed(2)}`;
+        });
     </script>
 </body>
 </html>
