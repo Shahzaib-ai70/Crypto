@@ -1,5 +1,3 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
 import express from "express";
 import cors from "cors";
 import multer from "multer";
@@ -7,1427 +5,224 @@ import fetch from "node-fetch";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import bcrypt from "bcryptjs";
-import cookieParser from "cookie-parser";
 
-/* ================= BASIC SETUP ================= */
+/* =========================
+   BASIC SETUP
+========================= */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(cors({ origin: "*"}));
+app.use(cors());
 app.use(express.json());
-app.use(cookieParser());
 
-/* 
-   VPS DEPLOYMENT REQUIREMENT:
-   Node.js MUST NOT serve frontend files. 
-   NGINX serves frontend on port 80.
-   Node.js serves API on port 3001 (Internal).
-*/
-const rootDir = path.join(__dirname, "..");
-app.use(express.static(rootDir));
-app.get("/", (req, res) => {
-  res.sendFile(path.join(rootDir, "index.html"));
-});
+/* =========================
+   STORAGE DIRECTORIES
+========================= */
+const uploadsDir = path.join(__dirname, "uploads");
+const dataDir = path.join(__dirname, "data");
+
+fs.mkdirSync(uploadsDir, { recursive: true });
+fs.mkdirSync(dataDir, { recursive: true });
+
+const upload = multer({ dest: uploadsDir });
+
+/* =========================
+   SIMPLE JSON STORAGE
+========================= */
+function readStore(name) {
+  const file = path.join(dataDir, `${name}.json`);
+  if (!fs.existsSync(file)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf-8") || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function writeStore(name, data) {
+  fs.writeFileSync(
+    path.join(dataDir, `${name}.json`),
+    JSON.stringify(data, null, 2)
+  );
+}
+
+/* =========================
+   STATIC SERVING
+========================= */
+app.use("/uploads", express.static(uploadsDir));
 app.use("/admin", express.static(path.join(__dirname, "admin")));
 
-
-
-/* ================= DATABASE ================= */
-let db;
-
-async function initDb() {
-    db = await open({
-        filename: path.join(__dirname, "db.sqlite"),
-        driver: sqlite3.Database
-    });
-
-    await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE,
-      password TEXT,
-      balance REAL DEFAULT 0,
-      status TEXT DEFAULT 'active',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-    `);
-
-    // Migration for status column
-    try {
-        await db.run("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active'");
-    } catch(e) {}
-
-    // Migration for trade settings
-    try {
-        await db.run("ALTER TABLE users ADD COLUMN min_trade_amount REAL DEFAULT 10");
-        await db.run("ALTER TABLE users ADD COLUMN trade_settings TEXT DEFAULT '[]'");
-    } catch(e) {}
-
-
-    await db.exec(`
-    CREATE TABLE IF NOT EXISTS trades (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT,
-      symbol TEXT,
-      side TEXT,
-      amount REAL,
-      profit REAL,
-      result TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS verifications (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT,
-      kind TEXT, /* primary | advanced */
-      first_name TEXT,
-      last_name TEXT,
-      document_type TEXT,
-      document_number TEXT,
-      front_image TEXT,
-      back_image TEXT,
-      selfie_image TEXT,
-      status TEXT DEFAULT 'pending',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS deposits (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT,
-      currency TEXT,
-      network TEXT,
-      amount REAL,
-      proof_image TEXT,
-      status TEXT DEFAULT 'pending',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-    
-    CREATE TABLE IF NOT EXISTS withdrawals (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT,
-      currency TEXT,
-      network TEXT,
-      amount REAL,
-      address TEXT,
-      status TEXT DEFAULT 'pending',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS user_balances (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT,
-      currency TEXT,
-      amount REAL DEFAULT 0,
-      UNIQUE(username, currency)
-    );
-    `);
-
-    // Migration for deposits proof_image
-    try {
-      await db.run("ALTER TABLE deposits ADD COLUMN proof_image TEXT");
-    } catch (e) {
-      // Ignore if exists
-    }
-
-    // Migration for withdrawals address
-    try {
-      await db.run("ALTER TABLE withdrawals ADD COLUMN address TEXT");
-    } catch (e) {
-      // Ignore if exists
-    }
-
-    // Migration for invitation_code
-    try {
-        await db.run("ALTER TABLE users ADD COLUMN invitation_code TEXT");
-    } catch(e) {}
-}
-
-/* ================= AUTH APIs ================= */
-
-// REGISTER
-app.post("/api/register", async (req, res) => {
-  const { email, password, invitationCode } = req.body;
-
-  // We use 'email' as the 'username' in the database to maintain compatibility
-  // with existing tables that reference 'username'.
-  const username = email; 
-
-  if (!username || !password) {
-    return res.status(400).json({ error: "Missing fields" });
-  }
-
-  const hash = bcrypt.hashSync(password, 10);
-
-  try {
-    // Note: Original code did not insert password, preserving that behavior for now
-    // to match "like before" request, although it seems like a bug.
-    // If you want to fix auth, uncomment the password field below.
-    await db.run(`
-      INSERT INTO users (username, balance, invitation_code)
-      VALUES (?, ?, ?)
-    `, [username, 0, invitationCode || null]);
-
-    // Auto-login after registration
-    res.cookie("user", username, {
-      httpOnly: true,
-      sameSite: "lax"
-    });
-
-    res.json({ success: true, username: username });
-  } catch (e) {
-    res.status(400).json({ error: "Email already registered" });
-  }
-});
-
-// LOGIN
-app.post("/api/login", async (req, res) => {
-  const { email, password } = req.body;
-  const username = email; // Map email to username
-
-  const user = await db.get(
-    "SELECT * FROM users WHERE username=?", [username]
-  );
-
-  if (!user) {
-    return res.status(401).json({ error: "Invalid login" });
-  }
-
-  if (user.status === 'frozen') {
-    return res.status(403).json({ error: "Please contact with customer service" });
-  }
-
-  // Note: Original code did not check password.
-
-  res.cookie("user", username, {
-    httpOnly: true,
-    sameSite: "lax"
-  });
-
-  res.json({ success: true });
-});
-
-// CURRENT USER
-app.get("/api/me", async (req, res) => {
-  const username = req.cookies.user || req.headers['x-user'];
-  if (!username) return res.json(null);
-
-  const user = await db.get(
-    "SELECT id, username, balance FROM users WHERE username=?", [username]
-  );
-  
-  if (user) {
-      const balances = await db.all("SELECT currency, amount FROM user_balances WHERE username=?", [username]);
-      user.balances = balances;
-  }
-
-  res.json(user);
-});
-
-// LOGOUT
-app.post("/api/logout", (req, res) => {
-  res.clearCookie("user");
-  res.json({ success: true });
-});
-
-
-// HISTORY APIs
-app.get("/api/history/deposits", async (req, res) => {
-  const username = req.cookies.user || req.headers['x-user'];
-  if (!username) return res.status(401).json({ error: "Unauthorized" });
-
-  try {
-    const deposits = await db.all(
-      "SELECT * FROM deposits WHERE username=? ORDER BY created_at DESC", 
-      [username]
-    );
-    res.json(deposits);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.get("/api/history/withdrawals", async (req, res) => {
-  const username = req.cookies.user || req.headers['x-user'];
-  if (!username) return res.status(401).json({ error: "Unauthorized" });
-
-  try {
-    const withdrawals = await db.all(
-      "SELECT * FROM withdrawals WHERE username=? ORDER BY created_at DESC", 
-      [username]
-    );
-    res.json(withdrawals);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.get("/api/history/trades", async (req, res) => {
-  const username = req.cookies.user || req.headers['x-user'];
-  if (!username) return res.status(401).json({ error: "Unauthorized" });
-
-  try {
-    const trades = await db.all(
-      "SELECT * FROM trades WHERE username=? ORDER BY created_at DESC", 
-      [username]
-    );
-    res.json(trades);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-/* ================= ADMIN APIs ================= */
-
-app.get("/api/admin/stats", async (req, res) => {
-    try {
-        // Total Users
-        const totalUsers = await db.get("SELECT COUNT(*) as count FROM users");
-        
-        // Frozen Users
-        const frozenUsers = await db.get("SELECT COUNT(*) as count FROM users WHERE status = 'frozen'");
-        
-        // Net Deposit (All Time)
-        // We need to sum approved deposits and subtract approved withdrawals
-        const totalDeposits = await db.get("SELECT SUM(amount) as total FROM deposits WHERE status = 'approved'");
-        const totalWithdrawals = await db.get("SELECT SUM(amount) as total FROM withdrawals WHERE status = 'approved'");
-        const netDeposit = (totalDeposits.total || 0) - (totalWithdrawals.total || 0);
-
-        // Net Deposit (Today)
-        const todayStart = new Date();
-        todayStart.setHours(0,0,0,0);
-        const todayStr = todayStart.toISOString();
-
-        const todayDeposits = await db.get("SELECT SUM(amount) as total FROM deposits WHERE status = 'approved' AND created_at >= ?", [todayStr]);
-        const todayWithdrawals = await db.get("SELECT SUM(amount) as total FROM withdrawals WHERE status = 'approved' AND created_at >= ?", [todayStr]);
-        const todayNetDeposit = (todayDeposits.total || 0) - (todayWithdrawals.total || 0);
-
-        res.json({
-            totalUsers: totalUsers.count,
-            frozenUsers: frozenUsers.count,
-            platformRechargeUpDown: netDeposit,
-            todayRechargeUpDown: todayNetDeposit
-        });
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: "Failed to fetch stats" });
-    }
-});
-
-app.get("/api/admin/charts", async (req, res) => {
-    try {
-        // Last 7 days
-        const days = [];
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            days.push(d.toISOString().split('T')[0]); // YYYY-MM-DD
-        }
-
-        const incomeData = [];
-        const usersData = [];
-
-        for (const day of days) {
-            // New Users
-            const userCount = await db.get(
-                "SELECT COUNT(*) as count FROM users WHERE date(created_at) = ?", 
-                [day]
-            );
-            usersData.push(userCount.count || 0);
-
-            // Income (Deposits - Withdrawals)
-            // SQLite date string comparison works if format is consistent (YYYY-MM-DD ...)
-            // We'll use the 'date()' function on created_at
-            const dep = await db.get(
-                "SELECT SUM(amount) as total FROM deposits WHERE status = 'approved' AND date(created_at) = ?", 
-                [day]
-            );
-            const wth = await db.get(
-                "SELECT SUM(amount) as total FROM withdrawals WHERE status = 'approved' AND date(created_at) = ?", 
-                [day]
-            );
-            
-            incomeData.push((dep.total || 0) - (wth.total || 0));
-        }
-
-        res.json({
-            labels: days,
-            income: incomeData,
-            users: usersData
-        });
-
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: "Failed to fetch charts" });
-    }
-});
-
-
-
-/* ================= PRICES & CONVERSION ================= */
-
-// Helper to get prices
-async function getPrices() {
-  try {
-    const response = await fetch('https://api.binance.com/api/v3/ticker/price');
-    const data = await response.json();
-    // Convert to simple map { BTC: 95000, ... }
-    const prices = {};
-    data.forEach(item => {
-      if (item.symbol.endsWith('USDT')) {
-        const symbol = item.symbol.replace('USDT', '');
-        prices[symbol] = parseFloat(item.price);
-      }
-    });
-    // Add stablecoins
-    prices['USDT'] = 1;
-    return prices;
-  } catch (e) {
-    console.error("Failed to fetch prices:", e);
-    // Fallback
-    return {
-      BTC: 96500,
-      ETH: 3700,
-      BNB: 620,
-      SOL: 155,
-      XRP: 2.45,
-      ADA: 1.15,
-      DOGE: 0.38,
-      TRX: 0.22,
-      LTC: 105,
-      DOT: 9.5,
-      LINK: 21,
-      SHIB: 0.000032,
-      AVAX: 42,
-      BCH: 410,
-      UNI: 12.5,
-      MATIC: 0.65,
-      XLM: 0.45,
-      ETC: 32,
-      FIL: 9,
-      NEAR: 7.5,
-      APT: 15,
-      ARB: 1.8,
-      OP: 3.5,
-      PEPE: 0.00001,
-      FLOKI: 0.0002,
-      USDT: 1
-    };
-  }
-}
-
-app.get("/api/prices", async (req, res) => {
-  const prices = await getPrices();
-  res.json(prices);
-});
-
-// MARKET DATA (24hr ticker)
-app.get("/api/depth", async (req, res) => {
-    try {
-        const { symbol, limit } = req.query;
-        if (!symbol) return res.status(400).json({ error: "Missing symbol" });
-        
-        const binanceSymbol = symbol.toUpperCase().replace('/', ''); 
-        const depthLimit = limit || 10;
-
-        const url = `https://api.binance.com/api/v3/depth?symbol=${binanceSymbol}&limit=${depthLimit}`;
-        
-        try {
-            const r = await fetch(url, { headers: { 'User-Agent': 'Node.js/1.0' } });
-            if (r.ok) {
-                const data = await r.json();
-                return res.json(data);
-            } else {
-                console.error("Binance depth error:", r.status);
-            }
-        } catch (e) {
-            console.error("Binance depth fetch failed:", e.message);
-        }
-
-        res.json({ bids: [], asks: [] });
-    } catch (e) {
-        console.error("Depth error:", e);
-        res.status(500).json({ error: "Failed to fetch depth" });
-    }
-});
-
-app.get("/api/markets", async (req, res) => {
-    try {
-        let symbolsParam = req.query.symbols;
-        let symbolParam = req.query.symbol;
-        
-        // Construct Binance URL
-        let url = "";
-
-        if (symbolParam) {
-            // Explicit single symbol
-            url = `https://api.binance.com/api/v3/ticker/24hr?symbol=${symbolParam}`;
-        } else if (symbolsParam) {
-            // Check if it looks like a JSON array
-            if (typeof symbolsParam === 'string' && symbolsParam.trim().startsWith('[')) {
-                // It is a JSON array (e.g. from quotes.html)
-                url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbolsParam)}`;
-            } else {
-                // Assume it's a single symbol passed in 'symbols' param (e.g. from transaction.html)
-                url = `https://api.binance.com/api/v3/ticker/24hr?symbol=${symbolsParam}`;
-            }
-        } else {
-            return res.json([]);
-        }
-        
-        try {
-            const r = await fetch(url, {
-                headers: { 'User-Agent': 'Node.js/1.0' }
-            });
-
-            if (r.ok) {
-                const data = await r.json();
-                const markets = Array.isArray(data) ? data : [data];
-                return res.json(markets);
-            } else {
-                console.error("Binance 24hr API error:", r.status);
-            }
-        } catch (e) {
-            console.error("Binance 24hr fetch failed:", e.message);
-        }
-
-        // Fallback: CoinGecko (Very reliable public API)
-        try {
-             const geckoUrl = `https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,binancecoin,ripple,solana,cardano,dogecoin,tron,litecoin,polkadot,chainlink,shiba-inu,avalanche-2,bitcoin-cash,uniswap,matic-network,stellar,ethereum-classic,filecoin,near,aptos,arbitrum,optimism,pepe,floki&vs_currencies=usd&include_24hr_change=true`;
-             const rGecko = await fetch(geckoUrl);
-             if (rGecko.ok) {
-                 const geckoData = await rGecko.json();
-                 // Map: symbol -> geckoId
-                 const mapSym = {
-                     'BTCUSDT': 'bitcoin', 'ETHUSDT': 'ethereum', 'BNBUSDT': 'binancecoin',
-                     'XRPUSDT': 'ripple', 'SOLUSDT': 'solana', 'ADAUSDT': 'cardano',
-                     'DOGEUSDT': 'dogecoin', 'TRXUSDT': 'tron', 'LTCUSDT': 'litecoin',
-                     'DOTUSDT': 'polkadot', 'LINKUSDT': 'chainlink', 'SHIBUSDT': 'shiba-inu',
-                     'AVAXUSDT': 'avalanche-2', 'BCHUSDT': 'bitcoin-cash', 'UNIUSDT': 'uniswap',
-                     'MATICUSDT': 'matic-network', 'XLMUSDT': 'stellar', 'ETCUSDT': 'ethereum-classic',
-                     'FILUSDT': 'filecoin', 'NEARUSDT': 'near', 'APTUSDT': 'aptos',
-                     'ARBUSDT': 'arbitrum', 'OPUSDT': 'optimism', 'PEPEUSDT': 'pepe', 'FLOKIUSDT': 'floki'
-                 };
-                 
-                 const markets = requestedSymbols.map(sym => {
-                     const id = mapSym[sym];
-                     if (id && geckoData[id]) {
-                         return {
-                             symbol: sym,
-                             lastPrice: geckoData[id].usd.toString(),
-                             priceChangePercent: geckoData[id].usd_24h_change.toFixed(2),
-                             volume: "0" // CoinGecko simple price doesn't have volume easily
-                         };
-                     }
-                     return null;
-                 }).filter(Boolean);
-                 
-                 if (markets.length > 0) return res.json(markets);
-             }
-        } catch (e) {
-             console.error("CoinGecko market fetch failed:", e.message);
-        }
-
-        // Fallback: CoinCap (Public API, no auth, often works on VPS)
-        try {
-             const rCap = await fetch('https://api.coincap.io/v2/assets?limit=100');
-             if (rCap.ok) {
-                 const json = await rCap.json(); // { data: [...] }
-                 const requestedSymbols = JSON.parse(symbolsParam || "[]");
-                 
-                 // Map CoinCap data to our format
-                 const markets = requestedSymbols.map(sym => {
-                     const base = sym.replace('USDT', '');
-                     const item = json.data.find(d => d.symbol === base);
-                     if (item) {
-                         return {
-                             symbol: sym,
-                             lastPrice: item.priceUsd,
-                             priceChangePercent: item.changePercent24Hr,
-                             volume: item.volumeUsd24Hr
-                         };
-                     }
-                     return null;
-                 }).filter(Boolean);
-                 
-                 if (markets.length > 0) return res.json(markets);
-             }
-        } catch (e) {
-             console.error("CoinCap market fetch failed:", e.message);
-        }
-
-        // Fallback to simple price ticker (lighter, maybe less blocked)
-        try {
-            const urlPrice = `https://api.binance.com/api/v3/ticker/price?symbols=${encodeURIComponent(symbolsParam)}`;
-            const r = await fetch(urlPrice, {
-                headers: { 'User-Agent': 'Node.js/1.0' }
-            });
-            
-            if (r.ok) {
-                const data = await r.json();
-                const items = Array.isArray(data) ? data : [data];
-                // Map to expected format (missing change percent)
-                const markets = items.map(item => ({
-                    symbol: item.symbol,
-                    lastPrice: item.price,
-                    priceChangePercent: "0.00", // Not available in this endpoint
-                    volume: "0"
-                }));
-                return res.json(markets);
-            }
-        } catch (e) {
-            console.error("Binance price fetch failed:", e.message);
-        }
-
-        // FINAL FALLBACK: Return 0.00 for requested symbols to avoid crash
-        const symbols = JSON.parse(symbolsParam || "[]");
-        const fallbackData = symbols.map(s => ({
-            symbol: s,
-            lastPrice: "0.00",
-            priceChangePercent: "0.00",
-            volume: "0"
-        }));
-        
-        // Try to fill with some hardcoded data if available
-        const prices = await getPrices(); // Internal helper that has some hardcoded values
-        fallbackData.forEach(item => {
-            const base = item.symbol.replace('USDT', '');
-            if (prices[base]) {
-                item.lastPrice = prices[base].toString();
-            }
-        });
-        
-        res.json(fallbackData);
-
-    } catch (e) {
-        console.error("Market data error:", e);
-        res.status(500).json({ error: "Failed to fetch market data" });
-    }
-});
-
-// KLINES (Candlestick data)
-app.get("/api/klines", async (req, res) => {
-    try {
-        const { symbol, interval, limit } = req.query;
-        if (!symbol) return res.status(400).json({ error: "Missing symbol" });
-
-        // Ensure symbol has USDT if not present (heuristic for this app)
-        let binanceSymbol = symbol.toUpperCase();
-        // If symbol doesn't end with USDT and is not a stable pair like USDC/USDT (which is unlikely here), append USDT
-        // But the frontend usually sends 'BTC' or 'BTCUSDT'.
-        // If it sends 'BTC', we append 'USDT'.
-        if (!binanceSymbol.endsWith('USDT') && !binanceSymbol.endsWith('BTC') && !binanceSymbol.endsWith('ETH') && !binanceSymbol.endsWith('BNB')) {
-             binanceSymbol += 'USDT';
-        }
-        
-        // However, the frontend sends 'BTC' (stripped from 'BTC/USDT').
-        // So standardizing to 'BTCUSDT' is safe for this specific app context.
-        if (!binanceSymbol.includes('USDT')) {
-            binanceSymbol += 'USDT';
-        }
-
-        const binanceInterval = interval || '1m';
-        const binanceLimit = limit || 100;
-
-        const url = `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${binanceInterval}&limit=${binanceLimit}`;
-        
-        try {
-            const r = await fetch(url, { headers: { 'User-Agent': 'Node.js/1.0' } });
-            if (r.ok) {
-                const data = await r.json();
-                return res.json(data);
-            } else {
-                 console.error("Binance klines error:", r.status);
-            }
-        } catch (e) {
-            console.error("Binance klines fetch failed:", e.message);
-        }
-
-        res.json([]);
-    } catch (e) {
-        console.error("Klines error:", e);
-        res.status(500).json({ error: "Failed to fetch klines" });
-    }
-});
-
-// CONVERT COIN (Two-way support)
-app.post("/api/convert", async (req, res) => {
-  const username = req.cookies.user || req.headers['x-user'];
-  if (!username) return res.status(401).json({ error: "Unauthorized" });
-
-  let { fromCurrency, toCurrency, amount } = req.body;
-  
-  // Default to USDT if target not specified (legacy behavior)
-  if (!toCurrency) toCurrency = 'USDT';
-
-  if (!fromCurrency || !amount || amount <= 0) {
-    return res.status(400).json({ error: "Invalid parameters" });
-  }
-
-  if (fromCurrency === toCurrency) {
-      return res.status(400).json({ error: "Cannot convert to same currency" });
-  }
-
-  try {
-      // 1. Get Prices
-      const prices = await getPrices();
-      const pFrom = prices[fromCurrency];
-      const pTo = prices[toCurrency];
-
-      if (!pFrom || !pTo) {
-        return res.status(400).json({ error: `Price not available for ${!pFrom ? fromCurrency : toCurrency}` });
-      }
-
-      // 2. Check Balance
-      // Special handling for USDT as source (check users.balance)
-      if (fromCurrency === 'USDT') {
-          const user = await db.get("SELECT balance FROM users WHERE username=?", [username]);
-          if (!user || user.balance < amount) {
-             return res.status(400).json({ error: "Insufficient USDT balance" });
-          }
-      } else {
-          const balanceRow = await db.get(
-            "SELECT amount FROM user_balances WHERE username=? AND currency=?",
-            [username, fromCurrency]
-          );
-          if (!balanceRow || balanceRow.amount < amount) {
-            return res.status(400).json({ error: "Insufficient balance" });
-          }
-      }
-
-      // 3. Calculate Target Amount
-      // Value in USDT
-      const valUsdt = amount * pFrom;
-      const targetAmount = valUsdt / pTo;
-
-      await db.run("BEGIN TRANSACTION");
-
-      // 4. Deduct Source
-      if (fromCurrency === 'USDT') {
-          await db.run("UPDATE users SET balance = balance - ? WHERE username=?", [amount, username]);
-          // Also sync user_balances if exists (avoid negative if not exists/sufficient there, but we assume main balance is source of truth)
-          // We only update if row exists to avoid creating negative balance rows for USDT if it was only in main table
-          await db.run("UPDATE user_balances SET amount = amount - ? WHERE username=? AND currency='USDT' AND amount >= ?", [amount, username, amount]);
-      } else {
-          await db.run("UPDATE user_balances SET amount = amount - ? WHERE username=? AND currency=?", [amount, username, fromCurrency]);
-      }
-
-      // 5. Add Target
-      if (toCurrency === 'USDT') {
-          await db.run("UPDATE users SET balance = balance + ? WHERE username=?", [targetAmount, username]);
-          // Sync user_balances
-           await db.run(`
-            INSERT INTO user_balances (username, currency, amount) 
-            VALUES (?, 'USDT', ?)
-            ON CONFLICT(username, currency) DO UPDATE SET amount = amount + ?
-          `, [username, targetAmount, targetAmount]);
-      } else {
-          await db.run(`
-            INSERT INTO user_balances (username, currency, amount) 
-            VALUES (?, ?, ?)
-            ON CONFLICT(username, currency) DO UPDATE SET amount = amount + ?
-          `, [username, toCurrency, targetAmount, targetAmount]);
-      }
-
-      // 6. Log Trade
-      await db.run(`
-        INSERT INTO trades (username, symbol, side, amount, profit, result)
-        VALUES (?, ?, 'convert', ?, ?, 'win')
-      `, [username, `${fromCurrency}-${toCurrency}`, amount, targetAmount]);
-
-      await db.run("COMMIT");
-      res.json({ success: true, convertedAmount: targetAmount, rate: pFrom/pTo });
-
-  } catch (e) {
-      await db.run("ROLLBACK");
-      res.status(500).json({ error: e.message });
-  }
-});
-
-/* ================== FILE STORAGE ================== */
-const uploadsDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir)
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-    const ext = path.extname(file.originalname) || '.jpg';
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext)
-  }
-})
-
-const upload = multer({ storage: storage });
-
-// Serve uploads
-app.use("/uploads", express.static(uploadsDir));
-
-// SUBMIT WITHDRAWAL
-app.post("/api/withdraw", async (req, res) => {
-  const username = req.cookies.user || req.headers['x-user'];
-  if (!username) return res.status(401).json({ error: "Unauthorized" });
-
-  const user = await db.get("SELECT status FROM users WHERE username=?", [username]);
-  if (user && user.status === 'frozen') return res.status(403).json({ error: "Account frozen" });
-
-  const { currency, network, amount, address } = req.body;
-  
-  if (!currency || !network || !amount || !address) {
-    return res.status(400).json({ error: "Missing fields" });
-  }
-
-  try {
-    await db.run("BEGIN TRANSACTION");
-
-    // 1. Check and Deduct Balance
-    // We need to check if we are withdrawing USDT or other coins
-    // For USDT, we generally check user_balances first, if not there, users.balance (legacy)
-    // Actually, for consistency with 'convert', we should prioritize user_balances for everything, 
-    // but we must handle the legacy main balance for USDT.
-
-    let balanceDeducted = false;
-
-    if (currency === 'USDT') {
-        // Try user_balances first
-        const balanceRow = await db.get("SELECT amount FROM user_balances WHERE username=? AND currency='USDT'", [username]);
-        if (balanceRow && balanceRow.amount >= amount) {
-            await db.run("UPDATE user_balances SET amount = amount - ? WHERE username=? AND currency='USDT'", [amount, username]);
-            balanceDeducted = true;
-        } else {
-            // Check legacy main balance
-            const userMain = await db.get("SELECT balance FROM users WHERE username=?", [username]);
-            if (userMain && userMain.balance >= amount) {
-                 await db.run("UPDATE users SET balance = balance - ? WHERE username=?", [amount, username]);
-                 balanceDeducted = true;
-            }
-        }
-    } else {
-        // Other coins
-        const balanceRow = await db.get("SELECT amount FROM user_balances WHERE username=? AND currency=?", [username, currency]);
-        if (balanceRow && balanceRow.amount >= amount) {
-            await db.run("UPDATE user_balances SET amount = amount - ? WHERE username=? AND currency=?", [amount, username, currency]);
-            balanceDeducted = true;
-        }
-    }
-
-    if (!balanceDeducted) {
-        await db.run("ROLLBACK");
-        return res.status(400).json({ error: "Insufficient balance" });
-    }
-
-    // 2. Insert Withdrawal Record
-    const result = await db.run(`
-      INSERT INTO withdrawals (username, currency, network, amount, address, status)
-      VALUES (?, ?, ?, ?, ?, 'pending')
-    `, [username, currency, network, amount, address]);
-    
-    await db.run("COMMIT");
-    res.json({ id: result.lastID, status: "pending" });
-  } catch (e) {
-    await db.run("ROLLBACK");
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// SUBMIT DEPOSIT
-app.post("/api/deposit", upload.single('voucher'), async (req, res) => {
-  const username = req.cookies.user || req.headers['x-user'];
-  if (!username) return res.status(401).json({ error: "Unauthorized" });
-
-  const user = await db.get("SELECT status FROM users WHERE username=?", [username]);
-  if (user && user.status === 'frozen') return res.status(403).json({ error: "Account frozen" });
-
-  const { currency, network, amount, address } = req.body;
-  const proof_image = req.file ? "/uploads/" + req.file.filename : null;
-
-  try {
-    const result = await db.run(`
-      INSERT INTO deposits (username, currency, network, amount, proof_image)
-      VALUES (?, ?, ?, ?, ?)
-    `, [username, currency, network, amount, proof_image]);
-    
-    res.json({ id: result.lastID, status: "pending" });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// PRIMARY VERIFICATION
-app.post("/api/verification/primary", async (req, res) => {
-  const username = req.cookies.user || req.headers['x-user'];
-  if (!username) return res.status(401).json({ error: "Unauthorized" });
-  const { first_name, last_name, document_type, document_number } = req.body;
-  if (!first_name || !last_name || !document_type || !document_number) {
-    return res.status(400).json({ error: "Missing fields" });
-  }
-  try {
-    const result = await db.run(`
-      INSERT INTO verifications (username, kind, first_name, last_name, document_type, document_number, status)
-      VALUES (?, 'primary', ?, ?, ?, ?, 'pending')
-    `, [username, first_name, last_name, document_type, document_number]);
-    res.json({ id: result.lastID, status: "pending" });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ADVANCED VERIFICATION WITH FILES
-app.post("/api/verification/advanced", upload.fields([
-  { name: 'front', maxCount: 1 },
-  { name: 'back', maxCount: 1 },
-  { name: 'selfie', maxCount: 1 }
-]), async (req, res) => {
-  const username = req.cookies.user || req.headers['x-user'];
-  if (!username) return res.status(401).json({ error: "Unauthorized" });
-  const { document_type, document_number } = req.body;
-  if (!document_type || !document_number) {
-    return res.status(400).json({ error: "Missing fields" });
-  }
-  const front = req.files?.front?.[0] ? "/uploads/" + req.files.front[0].filename : null;
-  const back = req.files?.back?.[0] ? "/uploads/" + req.files.back[0].filename : null;
-  const selfie = req.files?.selfie?.[0] ? "/uploads/" + req.files.selfie[0].filename : null;
-  if (!front || !back || !selfie) {
-    return res.status(400).json({ error: "Missing images" });
-  }
-  try {
-    const result = await db.run(`
-      INSERT INTO verifications (username, kind, document_type, document_number, front_image, back_image, selfie_image, status)
-      VALUES (?, 'advanced', ?, ?, ?, ?, ?, 'pending')
-    `, [username, document_type, document_number, front, back, selfie]);
-    res.json({ id: result.lastID, status: "pending" });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// USER VERIFICATION STATUS
-app.get("/api/verification/status", async (req, res) => {
-  const username = req.cookies.user || req.headers['x-user'];
-  if (!username) return res.json({ primary: null, advanced: null });
-  const primary = await db.get(`SELECT status FROM verifications WHERE username=? AND kind='primary' ORDER BY id DESC LIMIT 1`, [username]);
-  const advanced = await db.get(`SELECT status FROM verifications WHERE username=? AND kind='advanced' ORDER BY id DESC LIMIT 1`, [username]);
-  res.json({
-    primary: primary?.status || null,
-    advanced: advanced?.status || null
-  });
-});
-
-
-app.get("/api/history/deposits", async (req, res) => {
-  const username = req.cookies.user || req.headers['x-user'];
-  if (!username) return res.status(401).json({ error: "Unauthorized" });
-  
-  const rows = await db.all("SELECT * FROM deposits WHERE username=? ORDER BY id DESC", [username]);
-  res.json(rows);
-});
-
-app.get("/api/history/withdrawals", async (req, res) => {
-  const username = req.cookies.user || req.headers['x-user'];
-  if (!username) return res.status(401).json({ error: "Unauthorized" });
-
-  const rows = await db.all("SELECT * FROM withdrawals WHERE username=? ORDER BY id DESC", [username]);
-  res.json(rows);
-});
-
-app.get("/api/history/trades", async (req, res) => {
-  const username = req.cookies.user || req.headers['x-user'];
-  if (!username) return res.status(401).json({ error: "Unauthorized" });
-
-  const rows = await db.all("SELECT * FROM trades WHERE username=? ORDER BY id DESC", [username]);
-  res.json(rows);
-});
-
-/* ================== HEALTH ================== */
+/* =========================
+   HEALTH CHECK
+========================= */
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-/* ================== MARKET PRICES (BINANCE) ================== */
-app.get("/api/klines", async (req, res) => {
+/* =========================
+   DEPOSIT
+========================= */
+app.post("/api/deposit", upload.single("voucher"), (req, res) => {
+  const { currency, network, amount, address } = req.body;
+
+  const record = {
+    id: Date.now().toString(36),
+    currency,
+    network,
+    amount: parseFloat(amount || "0"),
+    address,
+    voucher: req.file ? `/uploads/${req.file.filename}` : null,
+    status: "pending",
+    createdAt: new Date().toISOString()
+  };
+
+  const deposits = readStore("deposits");
+  deposits.push(record);
+  writeStore("deposits", deposits);
+
+  res.json(record);
+});
+
+/* =========================
+   WITHDRAW
+========================= */
+app.post("/api/withdraw", (req, res) => {
+  const { currency, network, amount, address } = req.body;
+
+  const record = {
+    id: Date.now().toString(36),
+    currency,
+    network,
+    amount: parseFloat(amount || "0"),
+    address,
+    status: "processing",
+    createdAt: new Date().toISOString()
+  };
+
+  const withdrawals = readStore("withdrawals");
+  withdrawals.push(record);
+  writeStore("withdrawals", withdrawals);
+
+  res.json(record);
+});
+
+/* =========================
+   TRADING (MOCK ENGINE)
+========================= */
+app.post("/api/trade", (req, res) => {
+  const { symbol, side, quantity, type, price } = req.body;
+
+  const win = Math.random() < 0.5;
+  const pnlValue = Math.random() * 0.01 * (parseFloat(quantity || "0") || 0);
+
+  const record = {
+    id: Date.now().toString(36),
+    symbol,
+    side,
+    quantity: parseFloat(quantity || "0"),
+    type,
+    price: price ? parseFloat(price) : null,
+    outcome: win ? "win" : "lose",
+    pnl: win ? +pnlValue.toFixed(6) : -+pnlValue.toFixed(6),
+    createdAt: new Date().toISOString()
+  };
+
+  const trades = readStore("trades");
+  trades.push(record);
+  writeStore("trades", trades);
+
+  res.json(record);
+});
+
+/* =========================
+   LIST APIS
+========================= */
+app.get("/api/deposits", (req, res) => res.json(readStore("deposits")));
+app.get("/api/withdrawals", (req, res) => res.json(readStore("withdrawals")));
+app.get("/api/trades", (req, res) => res.json(readStore("trades")));
+
+/* =========================
+   ADMIN STATUS UPDATES
+========================= */
+app.post("/api/deposit/:id/status", (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  const data = readStore("deposits");
+  const index = data.findIndex(d => d.id === id);
+  if (index === -1) return res.status(404).json({ error: "not_found" });
+
+  data[index].status = status || data[index].status;
+  writeStore("deposits", data);
+
+  res.json(data[index]);
+});
+
+app.post("/api/withdraw/:id/status", (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  const data = readStore("withdrawals");
+  const index = data.findIndex(d => d.id === id);
+  if (index === -1) return res.status(404).json({ error: "not_found" });
+
+  data[index].status = status || data[index].status;
+  writeStore("withdrawals", data);
+
+  res.json(data[index]);
+});
+
+/* =========================
+   MARKET PRICES (BINANCE)
+========================= */
+app.get("/api/markets", async (req, res) => {
   try {
-    const { symbol, interval, limit } = req.query;
-    const url = `https://api.binance.com/api/v3/klines?symbol=${symbol || 'BTCUSDT'}&interval=${interval || '1m'}&limit=${limit || 100}`;
+    const symbols = req.query.symbols
+      ? JSON.parse(req.query.symbols)
+      : ["BTCUSDT", "ETHUSDT", "XRPUSDT"];
+
+    const url =
+      "https://api.binance.com/api/v3/ticker/24hr?symbols=" +
+      encodeURIComponent(JSON.stringify(symbols));
+
     const r = await fetch(url);
-    const data = await r.json();
-    res.json(data);
-  } catch (e) {
-    res.status(500).json({ error: "klines_fetch_failed" });
+    const j = await r.json();
+    res.json(j);
+  } catch {
+    res.status(500).json({ error: "failed_fetch" });
   }
 });
 
+/* =========================
+   ADMIN DASHBOARD SUMMARY
+========================= */
+app.get("/api/admin/summary", (req, res) => {
+  const deposits = readStore("deposits");
+  const withdrawals = readStore("withdrawals");
+  const trades = readStore("trades");
 
+  const today = new Date().toISOString().slice(0, 10);
+  const isToday = (d) => (d || "").startsWith(today);
 
-/* ================== USERS (ADMIN) ================== */
-app.get("/api/admin/users", async (req, res) => {
-  try {
-    const users = await db.all("SELECT * FROM users");
-    res.json(users);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
+  const sumAmount = (arr) =>
+    arr.reduce((a, b) => a + (parseFloat(b.amount) || 0), 0);
 
-// CREATE USER (NO LOGIN FOR NOW)
-app.post("/api/admin/users", async (req, res) => {
-  const { username, balance = 0 } = req.body;
-  try {
-    await db.run(
-      "INSERT INTO users (username, balance) VALUES (?, ?)", [username, balance]
-    );
-    res.json({ status: "created" });
-  } catch (e) {
-    res.status(400).json({ error: e.message });
-  }
-});
-
-// UPDATE BALANCE
-app.post("/api/admin/users/balance", async (req, res) => {
-  const { username, balance } = req.body;
-  // If balance is negative (e.g. -25), it will subtract.
-  // If balance is positive (e.g. 25), it will add.
-  await db.run(
-    "UPDATE users SET balance = balance + ? WHERE username=?", [balance, username]
-  );
-  res.json({ status: "updated" });
-});
-
-// ADD COIN BALANCE (ADMIN)
-app.post("/api/admin/users/add-coin-balance", async (req, res) => {
-  const { username, currency, amount } = req.body;
-  if(!username || !currency || amount === undefined) {
-      return res.status(400).json({ error: "Missing fields" });
-  }
-  
-  const val = parseFloat(amount);
-  
-  // Upsert balance
-  const existing = await db.get("SELECT * FROM user_balances WHERE username=? AND currency=?", [username, currency]);
-  if(existing) {
-      await db.run("UPDATE user_balances SET amount = amount + ? WHERE username=? AND currency=?", [val, username, currency]);
-  } else {
-      await db.run("INSERT INTO user_balances (username, currency, amount) VALUES (?, ?, ?)", [username, currency, val]);
-  }
-  
-  // If currency is USDT, also update the main legacy balance for compatibility
-  if(currency === 'USDT') {
-      await db.run("UPDATE users SET balance = balance + ? WHERE username=?", [val, username]);
-  }
-
-  res.json({ status: "updated" });
-});
-
-// GET USER DETAILED INFO (ADMIN)
-app.get("/api/admin/user/:username/details", async (req, res) => {
-    const { username } = req.params;
-    try {
-        const user = await db.get("SELECT * FROM users WHERE username=?", [username]);
-        if (!user) return res.status(404).json({ error: "User not found" });
-
-        const deposits = await db.get("SELECT SUM(amount) as total FROM deposits WHERE username=? AND status='approved'", [username]);
-        const withdrawals = await db.get("SELECT SUM(amount) as total FROM withdrawals WHERE username=? AND status='approved'", [username]);
-        const balances = await db.all("SELECT currency, amount FROM user_balances WHERE username=?", [username]);
-
-        // Include USDT from main balance if not in user_balances explicitly (or just as a fallback/check)
-        // We generally rely on user_balances now for specific coins, but main 'balance' is legacy USDT.
-        
-        res.json({
-            user,
-            total_deposited: deposits.total || 0,
-            total_withdrawn: withdrawals.total || 0,
-            balances
-        });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-// FREEZE/UNFREEZE USER (ADMIN)
-app.post("/api/admin/users/freeze", async (req, res) => {
-    const { username, status } = req.body; // status: 'active' or 'frozen'
-    if (!username || !status) return res.status(400).json({ error: "Missing fields" });
-
-    try {
-        await db.run("UPDATE users SET status=? WHERE username=?", [status, username]);
-        res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-// UPDATE USER TRADE SETTINGS (ADMIN)
-app.post("/api/admin/users/settings", async (req, res) => {
-    const { username, min_trade_amount, trade_settings } = req.body;
-    if (!username) return res.status(400).json({ error: "Missing username" });
-    
-    try {
-        await db.run("UPDATE users SET min_trade_amount=?, trade_settings=? WHERE username=?", [min_trade_amount, JSON.stringify(trade_settings), username]);
-        res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-// GET USER SETTINGS (For Frontend)
-app.get("/api/user/settings", async (req, res) => {
-    const username = req.cookies.user || req.headers['x-user'];
-    if (!username) return res.status(401).json({ error: "Unauthorized" });
-
-    try {
-        const user = await db.get("SELECT min_trade_amount, trade_settings FROM users WHERE username=?", [username]);
-        if (!user) return res.status(404).json({ error: "User not found" });
-        
-        res.json({
-            min_trade_amount: user.min_trade_amount || 10,
-            trade_settings: user.trade_settings ? JSON.parse(user.trade_settings) : []
-        });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
-});
-
-/* ================= SPOT TRADING APIs ================= */
-
-// ORDER BOOK (Spot)
-app.get("/api/depth", async (req, res) => {
-    const symbol = req.query.symbol || "BTCUSDT";
-    try {
-        const r = await fetch(`https://api.binance.com/api/v3/depth?symbol=${symbol}&limit=10`);
-        const data = await r.json();
-        res.json(data);
-    } catch (e) {
-        res.json({ bids: [], asks: [] });
-    }
-});
-
-// SPOT ORDER
-app.post("/api/spot/order", async (req, res) => {
-    const username = req.cookies.user || req.headers['x-user'];
-    if (!username) return res.status(401).json({ error: "Unauthorized" });
-
-    const { symbol, side, type, price, quantity } = req.body;
-    // side: BUY or SELL
-
-    if (!symbol || !side || !quantity) {
-        return res.status(400).json({ error: "Missing fields" });
-    }
-
-    const qty = parseFloat(quantity);
-    if (isNaN(qty) || qty <= 0) return res.status(400).json({ error: "Invalid quantity" });
-
-    try {
-        await db.run("BEGIN TRANSACTION");
-        
-        // Get Current Price
-        const prices = await getPrices();
-        const baseAsset = symbol.replace('USDT', '');
-        const currentPrice = prices[baseAsset] || 0;
-        
-        if (currentPrice <= 0) throw new Error("Price unavailable");
-
-        const tradePrice = type === 'LIMIT' && price ? parseFloat(price) : currentPrice;
-        const totalCost = qty * tradePrice;
-
-        if (side === 'BUY') {
-            // BUY: Pay USDT, Get Coin
-            let usdtBal = 0;
-            // Check user_balances first
-            const ub = await db.get("SELECT amount FROM user_balances WHERE username=? AND currency='USDT'", [username]);
-            if (ub) usdtBal = ub.amount;
-            else {
-                // Fallback to main users table
-                const u = await db.get("SELECT balance FROM users WHERE username=?", [username]);
-                usdtBal = u ? u.balance : 0;
-            }
-
-            if (usdtBal < totalCost) {
-                await db.run("ROLLBACK");
-                return res.status(400).json({ error: "Insufficient USDT balance" });
-            }
-
-            // Deduct USDT
-            if (ub) {
-                 await db.run("UPDATE user_balances SET amount = amount - ? WHERE username=? AND currency='USDT'", [totalCost, username]);
-            } else {
-                 await db.run("UPDATE users SET balance = balance - ? WHERE username=?", [totalCost, username]);
-                 // Also insert into user_balances to migrate
-                 await db.run("INSERT INTO user_balances (username, currency, amount) VALUES (?, 'USDT', ?)", [username, usdtBal - totalCost]);
-            }
-
-            // Add Coin
-            await db.run(`
-                INSERT INTO user_balances (username, currency, amount) VALUES (?, ?, ?)
-                ON CONFLICT(username, currency) DO UPDATE SET amount = amount + ?
-            `, [username, baseAsset, qty, qty]);
-
-        } else {
-            // SELL: Pay Coin, Get USDT
-            const cb = await db.get("SELECT amount FROM user_balances WHERE username=? AND currency=?", [username, baseAsset]);
-            if (!cb || cb.amount < qty) {
-                 await db.run("ROLLBACK");
-                 return res.status(400).json({ error: `Insufficient ${baseAsset} balance` });
-            }
-
-            // Deduct Coin
-            await db.run("UPDATE user_balances SET amount = amount - ? WHERE username=? AND currency=?", [qty, username, baseAsset]);
-
-            // Add USDT
-            await db.run(`
-                INSERT INTO user_balances (username, currency, amount) VALUES (?, 'USDT', ?)
-                ON CONFLICT(username, currency) DO UPDATE SET amount = amount + ?
-            `, [username, totalCost, totalCost]);
-            
-            // Sync legacy balance
-            await db.run("UPDATE users SET balance = balance + ? WHERE username=?", [totalCost, username]);
-        }
-
-        // Record Trade
-        await db.run(`
-            INSERT INTO trades (username, symbol, side, amount, profit, result)
-            VALUES (?, ?, ?, ?, ?, 'filled')
-        `, [username, symbol, side, qty, tradePrice]); 
-
-        await db.run("COMMIT");
-        res.json({ success: true, price: tradePrice, quantity: qty, cost: totalCost });
-
-    } catch (e) {
-        await db.run("ROLLBACK");
-        res.status(500).json({ error: e.message });
-    }
-});
-
-/* ================== DEMO TRADE ENGINE ================== */
-// Admin decides winning side
-let ADMIN_WIN_SIDE = "short"; // "long" or "short"
-
-app.post("/api/trade", async (req, res) => {
-  let { username, symbol, side, amount, seconds, percent } = req.body;
-
-  // Validate and parse inputs
-  amount = parseFloat(amount);
-  
-  // Fetch user settings for validation
-  try {
-      const user = await db.get("SELECT min_trade_amount, trade_settings FROM users WHERE username=?", [username]);
-      if (!user) return res.status(404).json({ error: "User not found" });
-
-      const minAmount = user.min_trade_amount || 10;
-      if (amount < minAmount) {
-          return res.status(400).json({ error: "Insufficient balance" }); // Custom error as requested
-      }
-
-      // If seconds provided, lookup percent from settings
-      if (seconds) {
-          const settings = user.trade_settings ? JSON.parse(user.trade_settings) : [];
-          const setting = settings.find(s => s.seconds == seconds);
-          if (setting) {
-              percent = parseFloat(setting.percent);
-          }
-      }
-  } catch(e) {
-      console.error("Trade validation error:", e);
-      return res.status(500).json({ error: "Validation failed" });
-  }
-
-  // Fallback if percent still missing (e.g. old frontend or not found in settings)
-  if (!percent || isNaN(parseFloat(percent))) {
-    percent = parseFloat(req.body.percent) || 0;
-  } else {
-    percent = parseFloat(percent);
-  }
-
-  if (isNaN(amount) || amount <= 0) {
-    return res.status(400).json({ error: "Invalid amount" });
-  }
-
-
-  const win = side === ADMIN_WIN_SIDE;
-  const profit = win ? amount * (percent / 100) : -amount;
-
-  console.log(`[TRADE] User: ${username}, Side: ${side}, Win: ${win}, Amount: ${amount}, Percent: ${percent}, Profit: ${profit}`);
-
-  try {
-    await db.run(`
-      INSERT INTO trades (username, symbol, side, amount, profit, result)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [username, symbol, side, amount, profit, win ? "win" : "lose"]);
-
-    await db.run(
-      "UPDATE users SET balance = balance + ? WHERE username=?", [profit, username]
-    );
-
-    // Sync user_balances for USDT
-    await db.run(`
-      INSERT INTO user_balances (username, currency, amount) 
-      VALUES (?, 'USDT', ?)
-      ON CONFLICT(username, currency) DO UPDATE SET amount = amount + ?
-    `, [username, profit, profit]);
-
-    res.json({
-      result: win ? "win" : "lose",
-      profit
-    });
-  } catch (e) {
-    console.error("Trade error:", e);
-    res.status(500).json({ error: "Trade failed" });
-  }
-});
-
-/* ================== ADMIN CONTROL ================== */
-app.post("/api/admin/winside", (req, res) => {
-  ADMIN_WIN_SIDE = req.body.side; // long / short
-  res.json({ winSide: ADMIN_WIN_SIDE });
-});
-
-app.get("/api/admin/summary", async (req, res) => {
-  try {
-    // Totals
-    const totalUsers = await db.get("SELECT COUNT(*) as count FROM users");
-    const frozenUsers = await db.get("SELECT COUNT(*) as count FROM users WHERE status='frozen'");
-    
-    const deposits = await db.get("SELECT SUM(amount) as total FROM deposits WHERE status='approved'");
-    const withdraws = await db.get("SELECT SUM(amount) as total FROM withdrawals WHERE status='approved'");
-    
-    // Today's stats
-    const today = new Date().toISOString().split('T')[0];
-    const todayDeposits = await db.get("SELECT SUM(amount) as total FROM deposits WHERE status='approved' AND date(created_at) = ?", [today]);
-    const todayWithdraws = await db.get("SELECT SUM(amount) as total FROM withdrawals WHERE status='approved' AND date(created_at) = ?", [today]);
-
-    // Chart Data (Last 7 Days)
-    const chartData = [];
-    for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
-        
-        const dayDep = await db.get("SELECT SUM(amount) as total FROM deposits WHERE status='approved' AND date(created_at) = ?", [dateStr]);
-        const dayWith = await db.get("SELECT SUM(amount) as total FROM withdrawals WHERE status='approved' AND date(created_at) = ?", [dateStr]);
-        const dayUsers = await db.get("SELECT COUNT(*) as count FROM users WHERE date(created_at) = ?", [dateStr]);
-        
-        chartData.push({
-            date: dateStr,
-            income: (dayDep.total || 0) - (dayWith.total || 0),
-            newUsers: dayUsers.count || 0
-        });
-    }
-
-    res.json({
-      totalUsers: totalUsers.count || 0,
-      frozenUsers: frozenUsers.count || 0,
-      platformRechargeUpDown: (deposits.total || 0) - (withdraws.total || 0),
-      todayRechargeUpDown: (todayDeposits.total || 0) - (todayWithdraws.total || 0),
-      chartData
-    });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.get("/api/deposits", async (req, res) => {
-  const rows = await db.all("SELECT * FROM deposits ORDER BY id DESC");
-  res.json(rows);
-});
-
-app.get("/api/withdrawals", async (req, res) => {
-  const rows = await db.all("SELECT * FROM withdrawals ORDER BY id DESC");
-  res.json(rows);
-});
-
-app.get("/api/trades", async (req, res) => {
-  const rows = await db.all("SELECT * FROM trades ORDER BY id DESC");
-  res.json(rows);
-});
-
-// ADMIN: VERIFICATIONS LIST
-app.get("/api/admin/verifications", async (req, res) => {
-  try {
-    const rows = await db.all("SELECT * FROM verifications ORDER BY id DESC");
-    res.json(rows);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// ADMIN: VERIFICATION STATUS UPDATE
-app.post("/api/admin/verification/:id/status", async (req, res) => {
-  const { status } = req.body;
-  const { id } = req.params;
-  await db.run("UPDATE verifications SET status=? WHERE id=?", [status, id]);
-  res.json({ success: true });
-});
-
-app.post("/api/deposit/:id/status", async (req, res) => {
-  const { status } = req.body;
-  const { id } = req.params;
-  await db.run("UPDATE deposits SET status=? WHERE id=?", [status, id]);
-  if (status === 'approved') {
-    const dep = await db.get("SELECT * FROM deposits WHERE id=?", [id]);
-    if (dep) {
-       await db.run("UPDATE users SET balance = balance + ? WHERE username=?", [dep.amount, dep.username]);
-    }
-  }
-  res.json({ success: true });
-});
-
-app.post("/api/withdraw/:id/status", async (req, res) => {
-  const { status } = req.body;
-  const { id } = req.params;
-  
-  if (status !== 'approved' && status !== 'rejected') {
-      return res.status(400).json({ error: "Invalid status" });
-  }
-
-  try {
-      await db.run("BEGIN TRANSACTION");
-      
-      const withdrawal = await db.get("SELECT * FROM withdrawals WHERE id=?", [id]);
-      if (!withdrawal) {
-          await db.run("ROLLBACK");
-          return res.status(404).json({ error: "Withdrawal not found" });
-      }
-
-      if (withdrawal.status !== 'pending') {
-          await db.run("ROLLBACK");
-          return res.status(400).json({ error: "Withdrawal already processed" });
-      }
-
-      await db.run("UPDATE withdrawals SET status=? WHERE id=?", [status, id]);
-
-      // If Rejected, Refund Balance
-      if (status === 'rejected') {
-          const { username, currency, amount } = withdrawal;
-          
-          if (currency === 'USDT') {
-             // Refund to legacy main balance for simplicity if we don't track where it came from
-             // Or better: check if user has user_balances entry, if so add there, else add to legacy.
-             // Simplest safe approach: Add to legacy balance if USDT, as that's the "primary" one.
-             await db.run("UPDATE users SET balance = balance + ? WHERE username=?", [amount, username]);
-          } else {
-             // Refund to coin balance
-             await db.run(`
-                INSERT INTO user_balances (username, currency, amount) 
-                VALUES (?, ?, ?)
-                ON CONFLICT(username, currency) DO UPDATE SET amount = amount + ?
-             `, [username, currency, amount, amount]);
-          }
-      }
-
-      await db.run("COMMIT");
-      res.json({ success: true });
-  } catch (e) {
-      await db.run("ROLLBACK");
-      res.status(500).json({ error: e.message });
-  }
-});
-
-/* ================== START SERVER ================== */
-const PORT = process.env.PORT || 3001;
-initDb().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Bitsafe API running on port ${PORT}`);
+  res.json({
+    platformRechargeUpDown: sumAmount(deposits),
+    platformOrders: trades.length,
+    todayRechargeUpDown: sumAmount(deposits.filter(d => isToday(d.createdAt))),
+    todayOrders: trades.filter(t => isToday(t.createdAt)).length,
+    usersRegistered: 0,
+    usersRealName: 0,
+    usersVerified: 0
   });
-}).catch(err => {
-    console.error("Failed to initialize database:", err);
+});
+
+/* =========================
+   START SERVER
+========================= */
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`✅ Bitsafe API running on port ${PORT}`);
 });
