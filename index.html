@@ -578,15 +578,13 @@
                 if(u === 'admin') userIdEl.textContent = 'ID: #888888';
             }
         });
-            }
-        });
+
         menuBackBtn?.addEventListener('click', function () {
             menuEl.classList.add('hidden');
         });
         logoutBtn?.addEventListener('click', function () {
              localStorage.removeItem('authUser'); 
              window.location.href='login.html'; 
-        });
         });
         const btnPrimaryInfo = document.getElementById('btnPrimaryInfo');
         const btnAdvancedCert = document.getElementById('btnAdvancedCert');
