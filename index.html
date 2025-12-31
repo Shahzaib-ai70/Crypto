@@ -839,6 +839,10 @@
             refresh();
         }
 
+        function refresh() {
+            fetchPrices(currentTab);
+        }
+
         function updateMockData(category) {
             const symbols = lists[category];
             if(!symbols) return;
@@ -862,10 +866,21 @@
         async function fetchPrices(category) {
             if (category === 'crypto') {
                 const symbols = lists.crypto;
+                
+                // Fallback mechanism
+                let success = false;
+                
                 try {
                     // Use Binance API directly (Client-side)
                     const url = 'https://api.binance.com/api/v3/ticker/24hr?symbols=' + encodeURIComponent(JSON.stringify(symbols));
-                    const res = await fetch(url);
+                    
+                    // Add timeout to fetch
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 2000);
+                    
+                    const res = await fetch(url, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    
                     if (!res.ok) throw new Error("binance_failed");
                     const json = await res.json();
                     
@@ -881,9 +896,13 @@
                     
                     updateTicker(json); // Update top ticker
                     renderList();       // Update list
+                    success = true;
                     
                 } catch (e) {
-                    console.log("Fetch failed", e);
+                    console.log("Fetch failed, using mock data", e);
+                }
+                
+                if (!success) {
                     // Fallback to mock data
                     updateMockData(category);
                     renderList();
