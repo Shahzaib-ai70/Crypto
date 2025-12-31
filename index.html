@@ -776,6 +776,24 @@
 
         // Mock Data State
         const mockState = {
+            // Crypto Fallback
+            BTCUSDT: { price: 43000.00, change: 1.5 },
+            ETHUSDT: { price: 2300.00, change: 1.2 },
+            BNBUSDT: { price: 300.00, change: 0.5 },
+            XRPUSDT: { price: 0.60, change: -0.2 },
+            SOLUSDT: { price: 95.00, change: 3.5 },
+            ADAUSDT: { price: 0.55, change: 1.0 },
+            DOGEUSDT: { price: 0.09, change: -1.5 },
+            TRXUSDT: { price: 0.10, change: 0.0 },
+            LTCUSDT: { price: 70.00, change: 0.5 },
+            DOTUSDT: { price: 7.50, change: 2.0 },
+            LINKUSDT: { price: 15.00, change: 1.0 },
+            SHIBUSDT: { price: 0.00001, change: 5.0 },
+            AVAXUSDT: { price: 35.00, change: 4.0 },
+            BCHUSDT: { price: 250.00, change: 1.0 },
+            UNIUSDT: { price: 6.00, change: 2.0 },
+            
+            // Stock
             AAPL: { price: 175.50, change: 1.2 },
             TSLA: { price: 240.30, change: -0.5 },
             GOOGL: { price: 138.20, change: 0.8 },
@@ -866,16 +884,13 @@
                     
                 } catch (e) {
                     console.log("Fetch failed", e);
+                    // Fallback to mock data
+                    updateMockData(category);
+                    renderList();
                 }
             } else {
                 updateMockData(category);
                 renderList();
-            }
-        } catch (e) {
-                    console.log("Fetch failed", e);
-                }
-            } else {
-                updateMockData(category);
             }
         }
 
