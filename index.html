@@ -90,12 +90,7 @@
         <div class="flex space-x-6 mt-4 text-sm text-gray-500 font-medium"><div class="text-gray-900 border-b-2 border-yellow-custom pb-1">Crypto</div><div>Stock</div><div>Forex</div><div>Gold</div></div>
     </div>
     <div class="flex justify-between px-4 mt-4 text-xs text-gray-400 mb-2"><div class="w-1/3 text-left">Name/Volume</div><div class="w-1/3 text-center">Latest Price</div><div class="w-1/3 text-right">24h chg</div></div>
-    <div class="px-4 space-y-6 pb-4">
-        <div class="flex items-center justify-between"><div class="flex items-center w-1/3"><div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white mr-2 text-xs font-bold">L</div><div><div class="flex items-baseline"><span class="font-bold text-gray-800 text-sm">LTC</span><span class="text-xs text-gray-400 ml-1">/USDT</span></div><div class="text-xs text-gray-400">703603.39</div></div></div><div class="w-1/3 text-center font-bold text-gray-800">76.53</div><div class="w-1/3 flex justify-end"><div class="bg-green-custom text-white px-3 py-1.5 rounded text-xs font-bold w-20 text-center">+0.86%</div></div></div>
-        <div class="flex items-center justify-between"><div class="flex items-center w-1/3"><div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white mr-2 text-xs font-bold">B</div><div><div class="flex items-baseline"><span class="font-bold text-gray-800 text-sm">BCH</span><span class="text-xs text-gray-400 ml-1">/USDT</span></div><div class="text-xs text-gray-400">92873.65</div></div></div><div class="w-1/3 text-center font-bold text-gray-800">602.4</div><div class="w-1/3 flex justify-end"><div class="bg-green-custom text-white px-3 py-1.5 rounded text-xs font-bold w-20 text-center">+2.08%</div></div></div>
-        <div class="flex items-center justify-between"><div class="flex items-center w-1/3"><div class="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-white mr-2 text-xs font-bold">D</div><div><div class="flex items-baseline"><span class="font-bold text-gray-800 text-sm">DOGE</span><span class="text-xs text-gray-400 ml-1">/USDT</span></div><div class="text-xs text-gray-400">15388555</div></div></div><div class="w-1/3 text-center font-bold text-gray-800">0.13081</div><div class="w-1/3 flex justify-end"><div class="bg-green-custom text-white px-3 py-1.5 rounded text-xs font-bold w-20 text-center">+3.70%</div></div></div>
-        <div class="flex items-center justify-between"><div class="flex items-center w-1/3"><div class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-white mr-2 text-xs font-bold">X</div><div><div class="flex items-baseline"><span class="font-bold text-gray-800 text-sm">XRP</span><span class="text-xs text-gray-400 ml-1">/USDT</span></div><div class="text-xs text-gray-400">3770401</div></div></div><div class="w-1/3 text-center font-bold text-gray-800">1.9050</div><div class="w-1/3 flex justify-end"><div class="bg-green-custom text-white px-3 py-1.5 rounded text-xs font-bold w-20 text-center">+3.52%</div></div></div>
-    </div>
+    <div id="coinsList" class="px-4 space-y-6 pb-4"></div>
     <div id="profileMenu" class="hidden fixed inset-0 z-50 bg-white">
         <div class="p-4 flex items-center justify-between border-b"><button id="menuBackBtn" class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-arrow-left text-gray-700"></i></button><div class="relative"><i class="fa-solid fa-headset text-xl text-gray-700"></i></div></div>
         <div class="p-4">
@@ -161,6 +156,34 @@
                 window.location.href='login.html'; 
             });
         });
+
+        (function(){
+            const symbols=['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT','ADAUSDT','DOGEUSDT','TRXUSDT','TONUSDT','DOTUSDT','LTCUSDT','BCHUSDT','LINKUSDT','MATICUSDT','AVAXUSDT'];
+            const list=document.getElementById('coinsList');
+            const rows={};
+            function fmtPrice(x){const n=parseFloat(x);if(isNaN(n))return '—';return n>=1000?n.toFixed(2):n>=1?n.toFixed(4):n.toFixed(6);}
+            function fmtVol(v){const n=parseFloat(v);if(isNaN(n))return '—';if(n>=1e9)return (n/1e9).toFixed(2)+'B';if(n>=1e6)return (n/1e6).toFixed(2)+'M';if(n>=1e3)return (n/1e3).toFixed(2)+'K';return n.toFixed(2);}
+            symbols.forEach(s=>{
+                const base=s.replace('USDT','');
+                const row=document.createElement('div');
+                row.className='flex items-center justify-between';
+                row.innerHTML='<div class=\"flex items-center w-1/3\"><div class=\"w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-white mr-2 text-xs font-bold\">'+base[0]+'</div><div><div class=\"flex items-baseline\"><span class=\"font-bold text-gray-800 text-sm\">'+base+'</span><span class=\"text-xs text-gray-400 ml-1\">/USDT</span></div><div class=\"text-xs text-gray-400\" data-vol>—</div></div></div><div class=\"w-1/3 text-center font-bold text-gray-800\" data-price>—</div><div class=\"w-1/3 flex justify-end\"><div class=\"px-3 py-1.5 rounded text-xs font-bold w-20 text-center\" data-chg>—</div></div>';
+                list.appendChild(row);
+                rows[s]={price:row.querySelector('[data-price]'),chg:row.querySelector('[data-chg]'),vol:row.querySelector('[data-vol]')};
+            });
+            const streams=symbols.map(s=>s.toLowerCase()+'@ticker').join('/');
+            const ws=new WebSocket('wss://stream.binance.com:9443/stream?streams='+streams);
+            ws.onmessage=function(ev){
+                const m=JSON.parse(ev.data);
+                const d=m.data;
+                const r=rows[d.s];
+                if(!r)return;
+                r.price.textContent=fmtPrice(d.c);
+                r.vol.textContent=fmtVol(d.v);
+                r.chg.textContent=(parseFloat(d.P)>=0?'+':'')+parseFloat(d.P).toFixed(2)+'%';
+                r.chg.className='px-3 py-1.5 rounded text-xs font-bold w-20 text-center '+(parseFloat(d.P)>=0?'bg-green-custom text-white':'bg-red-500 text-white');
+            };
+        })();
     </script>
 </body>
 </html>
