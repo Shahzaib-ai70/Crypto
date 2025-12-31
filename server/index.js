@@ -16,6 +16,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Serve static files from the root directory (one level up)
+app.use(express.static(path.join(__dirname, "../")));
+
 /* =========================
    STORAGE DIRECTORIES
 ========================= */
