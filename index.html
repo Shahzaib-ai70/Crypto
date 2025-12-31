@@ -21,9 +21,9 @@
 </head>
 <body class="pb-20 max-w-md mx-auto bg-white min-h-screen shadow-lg overflow-x-hidden">
     <div class="p-4 flex items-center justify-between sticky top-0 bg-white z-10">
-        <button id="gridMenuBtn" class="w-10 h-10 rounded-xl bg-white border border-gray-300 flex items-center justify-center mr-3 shadow-sm" aria-label="Menu">
-            <i class="fa-solid fa-grip-dots text-black text-xl"></i>
-        </button>
+        <div id="profileBtn" class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3 cursor-pointer">
+            <i class="fa-solid fa-user text-gray-600 text-lg"></i>
+        </div>
         <div class="flex items-center bg-gray-100 rounded-full px-3 py-2 flex-1 mr-4">
             <i class="fa-solid fa-magnifying-glass text-gray-400 mr-2"></i>
             <input type="text" placeholder="BTC/USDT" class="bg-transparent border-none outline-none text-sm w-full placeholder-gray-400">
@@ -37,11 +37,11 @@
         <div class="flex items-center text-gray-500 text-sm mb-1"><span>Est.Total Value(USDT)</span></div>
         <div class="flex items-center justify-between">
             <div>
-                <h1 class="text-4xl font-bold text-gray-800">0.97</h1>
-                <div class="flex items-center text-gray-500 text-sm mt-1"><span>≈ $0.96</span></div>
+                <h1 id="homeBalance" class="text-4xl font-bold text-gray-800">0.00</h1>
+                <div class="flex items-center text-gray-500 text-sm mt-1"><span id="homeBalanceUsd">≈ $0.00</span></div>
                 <div class="text-green-custom text-sm mt-1">0.00USDT(0%)</div>
             </div>
-            <i class="fa-regular fa-eye text-gray-800 text-xl"></i>
+            <i class="fa-regular fa-eye text-gray-800 text-xl cursor-pointer" onclick="toggleBalance()"></i>
         </div>
     </div>
     <div class="px-4 py-4 flex gap-4">
@@ -87,19 +87,26 @@
     </div>
     <div class="px-4">
         <div class="flex space-x-6 text-gray-400 font-medium text-lg border-b border-gray-100 pb-2"><div class="text-gray-900 border-b-2 border-yellow-custom pb-1">Favorites</div><div>Fast</div><div>Spot</div><div>Perpetual</div></div>
-        <div class="flex space-x-6 mt-4 text-sm text-gray-500 font-medium"><div class="text-gray-900 border-b-2 border-yellow-custom pb-1">Crypto</div><div>Stock</div><div>Forex</div><div>Gold</div></div>
+        <div class="flex space-x-6 mt-4 text-sm text-gray-500 font-medium">
+            <div id="tabCrypto" class="text-gray-900 border-b-2 border-yellow-custom pb-1 cursor-pointer">Crypto</div>
+            <div id="tabStock" class="cursor-pointer">Stock</div>
+            <div id="tabForex" class="cursor-pointer">Forex</div>
+            <div id="tabGold" class="cursor-pointer">Gold</div>
+        </div>
     </div>
-    <div class="flex justify-between px-4 mt-4 text-xs text-gray-400 mb-2"><div class="w-1/3 text-left">Name/Volume</div><div class="w-1/3 text-center">Latest Price</div><div class="w-1/3 text-right">24h chg</div></div>
-    <div class="px-4 space-y-6 pb-4">
-        <div class="flex items-center justify-between"><div class="flex items-center w-1/3"><div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white mr-2 text-xs font-bold">L</div><div><div class="flex items-baseline"><span class="font-bold text-gray-800 text-sm">LTC</span><span class="text-xs text-gray-400 ml-1">/USDT</span></div><div class="text-xs text-gray-400">703603.39</div></div></div><div class="w-1/3 text-center font-bold text-gray-800">76.53</div><div class="w-1/3 flex justify-end"><div class="bg-green-custom text-white px-3 py-1.5 rounded text-xs font-bold w-20 text-center">+0.86%</div></div></div>
-        <div class="flex items-center justify-between"><div class="flex items-center w-1/3"><div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white mr-2 text-xs font-bold">B</div><div><div class="flex items-baseline"><span class="font-bold text-gray-800 text-sm">BCH</span><span class="text-xs text-gray-400 ml-1">/USDT</span></div><div class="text-xs text-gray-400">92873.65</div></div></div><div class="w-1/3 text-center font-bold text-gray-800">602.4</div><div class="w-1/3 flex justify-end"><div class="bg-green-custom text-white px-3 py-1.5 rounded text-xs font-bold w-20 text-center">+2.08%</div></div></div>
-        <div class="flex items-center justify-between"><div class="flex items-center w-1/3"><div class="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-white mr-2 text-xs font-bold">D</div><div><div class="flex items-baseline"><span class="font-bold text-gray-800 text-sm">DOGE</span><span class="text-xs text-gray-400 ml-1">/USDT</span></div><div class="text-xs text-gray-400">15388555</div></div></div><div class="w-1/3 text-center font-bold text-gray-800">0.13081</div><div class="w-1/3 flex justify-end"><div class="bg-green-custom text-white px-3 py-1.5 rounded text-xs font-bold w-20 text-center">+3.70%</div></div></div>
-        <div class="flex items-center justify-between"><div class="flex items-center w-1/3"><div class="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-white mr-2 text-xs font-bold">X</div><div><div class="flex items-baseline"><span class="font-bold text-gray-800 text-sm">XRP</span><span class="text-xs text-gray-400 ml-1">/USDT</span></div><div class="text-xs text-gray-400">3770401</div></div></div><div class="w-1/3 text-center font-bold text-gray-800">1.9050</div><div class="w-1/3 flex justify-end"><div class="bg-green-custom text-white px-3 py-1.5 rounded text-xs font-bold w-20 text-center">+3.52%</div></div></div>
+    <div class="flex justify-between px-4 mt-4 text-xs text-gray-400 mb-2">
+        <div class="w-1/3 text-left">Name/Volume</div>
+        <div class="w-1/3 text-center">Latest Price</div>
+        <div class="w-1/3 text-right">24h chg</div>
+    </div>
+    <div id="homeCoinList" class="px-4 space-y-6 pb-4">
+        <!-- Dynamic Content -->
+        <div class="text-center text-gray-400 py-4">Loading...</div>
     </div>
     <div id="profileMenu" class="hidden fixed inset-0 z-50 bg-white">
         <div class="p-4 flex items-center justify-between border-b"><button id="menuBackBtn" class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center"><i class="fa-solid fa-arrow-left text-gray-700"></i></button><div class="relative"><i class="fa-solid fa-headset text-xl text-gray-700"></i></div></div>
         <div class="p-4">
-            <div class="flex items-center gap-3 mb-4"><div class="w-12 h-12 rounded-full bg-yellow-200 flex items-center justify-center"><i class="fa-solid fa-user text-yellow-700"></i></div><div><div id="menuUserName" class="font-semibold text-gray-800">Guest</div><div class="text-xs text-gray-400">ID: —</div></div></div>
+            <div class="flex items-center gap-3 mb-4"><div class="w-12 h-12 rounded-full bg-yellow-200 flex items-center justify-center"><i class="fa-solid fa-user text-yellow-700"></i></div><div><div id="menuUserName" class="font-semibold text-gray-800">Guest</div><div id="menuUserId" class="text-xs text-gray-400">ID: —</div></div></div>
             <div class="grid grid-cols-2 gap-3 mb-6"><button class="border rounded-xl p-4 text-left"><div class="font-semibold text-gray-800 mb-1">Certificação Primária</div><div class="text-xs text-gray-400">Análise</div></button><button class="border rounded-xl p-4 text-left"><div class="font-semibold text-gray-800 mb-1">Certificação Avançada</div><div class="text-xs text-gray-400">KYC</div></button></div>
             <div class="space-y-1"><a href="#" class="flex items-center justify-between p-3"><span class="text-gray-800">Equipe</span><i class="fa-solid fa-chevron-right text-gray-400"></i></a><a href="#" class="flex items-center justify-between p-3"><span class="text-gray-800">Endereço</span><i class="fa-solid fa-chevron-right text-gray-400"></i></a><a href="#" class="flex items-center justify-between p-3"><span class="text-gray-800">Perfil de companhia</span><i class="fa-solid fa-chevron-right text-gray-400"></i></a><a href="#" class="flex items-center justify-between p-3"><span class="text-gray-800">Licença regulatória</span><i class="fa-solid fa-chevron-right text-gray-400"></i></a></div>
         </div>
@@ -112,54 +119,280 @@
         <a href="futures.html" class="flex flex-col items-center bottom-nav-item cursor-pointer"><i class="fa-solid fa-file-contract text-xl mb-1"></i><span class="text-[10px]">Futures</span></a>
         <a href="#" onclick="handleAssetsClick(event)" class="flex flex-col items-center bottom-nav-item cursor-pointer"><i class="fa-solid fa-wallet text-xl mb-1"></i><span class="text-[10px]">Assets</span></a>
     </div>
+    <script src="translations.js"></script>
     <script>
         function isLoggedIn(){ return !!localStorage.getItem('authUser'); }
         function handleAssetsClick(e){ e.preventDefault(); if(!isLoggedIn()){ window.location.href='register.html'; } else { window.location.href='assets.html'; } }
-         
-         // Fetch balance for home page
-         (function(){
-            const u = localStorage.getItem('authUser');
-            if(u) {
-                fetch('/api/me', { headers: { 'x-user': u } })
-                .then(r=>r.json())
-                .then(d=>{
-                    if(d && d.balance !== undefined) {
-                        const bal = d.balance.toFixed(2);
-                        const homeBal = document.getElementById('homeBalance');
-                        if(homeBal) homeBal.textContent = bal;
-                        const homeUsd = document.getElementById('homeBalanceUsd');
-                        if(homeUsd) homeUsd.textContent = '≈ $' + bal;
-                    }
-                })
-                .catch(console.error);
-            }
-         })();
 
-         const gridBtn=document.getElementById('gridMenuBtn'),menuEl=document.getElementById('profileMenu'),menuBackBtn=document.getElementById('menuBackBtn'),userNameEl=document.getElementById('menuUserName'),logoutBtn=document.getElementById('logoutBtn');
-         gridBtn?.addEventListener('click',function(){ 
-             const u=localStorage.getItem('authUser'); 
-             userNameEl.textContent=u?u:'Guest'; 
-             menuEl.classList.remove('hidden');
-             // Fetch real balance/user info if logged in
-             if(u) {
-                 fetch('/api/me', { headers: { 'x-user': u } })
-                 .then(r=>r.json())
-                 .then(d=>{
-                     if(d && d.username) {
-                          userNameEl.textContent = d.username;
-                          // Update ID or other fields if available in UI
-                     }
-                 })
-                 .catch(console.error);
-             }
-         });
-        menuBackBtn?.addEventListener('click',function(){ menuEl.classList.add('hidden'); });
-        logoutBtn?.addEventListener('click',function(){ 
+        // Data & Meta from Quotes
+        const lists = {
+            crypto: ["BTCUSDT", "ETHUSDT", "BNBUSDT", "XRPUSDT", "SOLUSDT", "ADAUSDT", "DOGEUSDT", "TRXUSDT", "LTCUSDT", "DOTUSDT", "LINKUSDT", "SHIBUSDT", "AVAXUSDT", "BCHUSDT", "UNIUSDT", "MATICUSDT"],
+            stock: ["AAPL", "TSLA", "GOOGL", "AMZN", "MSFT", "NVDA", "META", "NFLX"],
+            forex: ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD"],
+            gold: ["XAUUSD", "XAGUSD"]
+        };
+        const META = {
+            // Crypto
+            BTCUSDT: {sym: "BTC", img: "https://assets.coincap.io/assets/icons/btc@2x.png"},
+            ETHUSDT: {sym: "ETH", img: "https://assets.coincap.io/assets/icons/eth@2x.png"},
+            BNBUSDT: {sym: "BNB", img: "https://assets.coincap.io/assets/icons/bnb@2x.png"},
+            XRPUSDT: {sym: "XRP", img: "https://assets.coincap.io/assets/icons/xrp@2x.png"},
+            SOLUSDT: {sym: "SOL", img: "https://assets.coincap.io/assets/icons/sol@2x.png"},
+            ADAUSDT: {sym: "ADA", img: "https://assets.coincap.io/assets/icons/ada@2x.png"},
+            DOGEUSDT: {sym: "DOGE", img: "https://assets.coincap.io/assets/icons/doge@2x.png"},
+            TRXUSDT: {sym: "TRX", img: "https://assets.coincap.io/assets/icons/trx@2x.png"},
+            LTCUSDT: {sym: "LTC", img: "https://assets.coincap.io/assets/icons/ltc@2x.png"},
+            DOTUSDT: {sym: "DOT", img: "https://assets.coincap.io/assets/icons/dot@2x.png"},
+            LINKUSDT: {sym: "LINK", img: "https://assets.coincap.io/assets/icons/link@2x.png"},
+            SHIBUSDT: {sym: "SHIB", img: "https://assets.coincap.io/assets/icons/shib@2x.png"},
+            AVAXUSDT: {sym: "AVAX", img: "https://assets.coincap.io/assets/icons/avax@2x.png"},
+            BCHUSDT: {sym: "BCH", img: "https://assets.coincap.io/assets/icons/bch@2x.png"},
+            UNIUSDT: {sym: "UNI", img: "https://assets.coincap.io/assets/icons/uni@2x.png"},
+            MATICUSDT: {sym: "MATIC", img: "https://assets.coincap.io/assets/icons/matic@2x.png"},
+            // Stock
+            AAPL: {sym: "AAPL", bg: "#000000", icon: "fa-brands fa-apple"},
+            TSLA: {sym: "TSLA", bg: "#cc0000", text: "T"},
+            GOOGL: {sym: "GOOGL", bg: "#4285F4", icon: "fa-brands fa-google"},
+            AMZN: {sym: "AMZN", bg: "#FF9900", icon: "fa-brands fa-amazon"},
+            MSFT: {sym: "MSFT", bg: "#00A4EF", icon: "fa-brands fa-microsoft"},
+            NVDA: {sym: "NVDA", bg: "#76B900", text: "N"},
+            META: {sym: "META", bg: "#0668E1", icon: "fa-brands fa-meta"},
+            NFLX: {sym: "NFLX", bg: "#E50914", text: "N"},
+            // Forex
+            EURUSD: {sym: "EUR/USD", bg: "#003399", text: "€"},
+            GBPUSD: {sym: "GBP/USD", bg: "#C8102E", text: "£"},
+            USDJPY: {sym: "USD/JPY", bg: "#BC002D", text: "¥"},
+            AUDUSD: {sym: "AUD/USD", bg: "#00008B", text: "A$"},
+            USDCAD: {sym: "USD/CAD", bg: "#FF0000", text: "C$"},
+            // Gold
+            XAUUSD: {sym: "Gold", bg: "#FFD700", text: "G"},
+            XAGUSD: {sym: "Silver", bg: "#C0C0C0", text: "S"}
+        };
+
+        // Mock Data State for Non-Crypto
+        const mockState = {
+            AAPL: { price: 175.50, change: 1.2 },
+            TSLA: { price: 240.30, change: -0.5 },
+            GOOGL: { price: 138.20, change: 0.8 },
+            AMZN: { price: 129.40, change: 0.3 },
+            MSFT: { price: 320.10, change: 1.5 },
+            NVDA: { price: 460.90, change: 2.1 },
+            META: { price: 305.60, change: 0.9 },
+            NFLX: { price: 440.20, change: -1.1 },
+            EURUSD: { price: 1.0750, change: 0.05 },
+            GBPUSD: { price: 1.2530, change: -0.1 },
+            USDJPY: { price: 147.80, change: 0.2 },
+            AUDUSD: { price: 0.6420, change: 0.1 },
+            USDCAD: { price: 1.3650, change: -0.05 },
+            XAUUSD: { price: 1925.50, change: 0.4 },
+            XAGUSD: { price: 23.10, change: 0.6 }
+        };
+
+        // UI Logic
+        const profileMenu = document.getElementById('profileMenu');
+        const profileBtn = document.getElementById('profileBtn');
+        const menuBackBtn = document.getElementById('menuBackBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userNameEl = document.getElementById('menuUserName');
+
+        // Tabs
+        const tabs = {
+            crypto: document.getElementById('tabCrypto'),
+            stock: document.getElementById('tabStock'),
+            forex: document.getElementById('tabForex'),
+            gold: document.getElementById('tabGold')
+        };
+        let currentTab = 'crypto';
+
+        function setActive(tabKey) {
+            Object.entries(tabs).forEach(([key, el]) => {
+                if (!el) return;
+                if (key === tabKey) {
+                    el.classList.add("text-gray-900","border-b-2","border-yellow-custom");
+                    el.classList.remove("text-gray-500"); // Not strictly needed if classes are clean, but good for safety
+                } else {
+                    el.classList.remove("text-gray-900","border-b-2","border-yellow-custom");
+                    // Assuming default state has text-gray-500 if we remove the active classes
+                }
+            });
+            currentTab = tabKey;
+            renderList();
+        }
+
+        Object.keys(tabs).forEach(key => {
+            if(tabs[key]) tabs[key].addEventListener('click', () => setActive(key));
+        });
+
+        profileBtn?.addEventListener('click', () => {
+             const u = localStorage.getItem('authUser'); 
+             userNameEl.textContent = u ? u : 'Guest'; 
+             profileMenu.classList.remove('hidden');
+             fetchUserData(); // Refresh data on open
+        });
+
+        menuBackBtn?.addEventListener('click', () => { profileMenu.classList.add('hidden'); });
+
+        logoutBtn?.addEventListener('click', () => { 
             fetch('/api/logout', { method: 'POST' })
             .finally(() => {
                 localStorage.removeItem('authUser'); 
                 window.location.href='login.html'; 
             });
+        });
+
+        let balanceHidden = false;
+        function toggleBalance() {
+            balanceHidden = !balanceHidden;
+            const balEl = document.getElementById('homeBalance');
+            const usdEl = document.getElementById('homeBalanceUsd');
+            if(balanceHidden) {
+                balEl.textContent = '****';
+                usdEl.textContent = '≈ $****';
+            } else {
+                fetchUserData(); // Restore
+            }
+        }
+
+        // Data Fetching
+        function fetchUserData() {
+            const u = localStorage.getItem('authUser');
+            if(!u) return;
+            fetch('/api/me', { headers: { 'x-user': u } })
+            .then(r=>r.json())
+            .then(d=>{
+                if(d) {
+                    if(d.balance !== undefined) {
+                        if(!balanceHidden) {
+                            const bal = d.balance.toFixed(2);
+                            document.getElementById('homeBalance').textContent = bal;
+                            document.getElementById('homeBalanceUsd').textContent = '≈ $' + bal;
+                        }
+                    }
+                    if(d.username) userNameEl.textContent = d.username;
+                    if(d.id) document.getElementById('menuUserId').textContent = 'ID: ' + d.id;
+                }
+            })
+            .catch(console.error);
+        }
+
+        // Coin List Logic
+        let cryptoData = {};
+        // Initialize cryptoData for all lists
+        Object.keys(lists).forEach(cat => {
+             lists[cat].forEach(s => {
+                 cryptoData[s] = { symbol: s, lastPrice: 0, priceChangePercent: 0 };
+             });
+        });
+
+        function updateMockData(category) {
+            const symbols = lists[category];
+            symbols.forEach(sym => {
+                const data = mockState[sym];
+                if(data) {
+                    // Random walk
+                    const move = (Math.random() - 0.5) * (data.price * 0.002); 
+                    data.price += move;
+                    data.change += (Math.random() - 0.5) * 0.1;
+                    
+                    cryptoData[sym] = {
+                        symbol: sym,
+                        lastPrice: data.price,
+                        priceChangePercent: data.change,
+                        volume: Math.floor(Math.random() * 1000000)
+                    };
+                }
+            });
+        }
+
+        function renderList() {
+            const container = document.getElementById('homeCoinList');
+            const symbols = lists[currentTab] || [];
+            let html = '';
+            
+            symbols.forEach(sym => {
+                const item = cryptoData[sym] || { lastPrice: 0, priceChangePercent: 0 };
+                const meta = META[sym] || { sym: sym.replace('USDT',''), bg: '#999', text: sym[0] };
+                const price = parseFloat(item.lastPrice);
+                
+                // Format price based on magnitude
+                let priceStr = "0.00";
+                if (price > 0) {
+                    if (price < 1) priceStr = price.toFixed(4);
+                    else if (price < 10) priceStr = price.toFixed(3);
+                    else priceStr = price.toFixed(2);
+                    
+                    if(price < 0.001) priceStr = price.toFixed(6);
+                }
+
+                const chg = parseFloat(item.priceChangePercent).toFixed(2);
+                const isUp = parseFloat(chg) >= 0;
+                
+                // Icon Logic
+                let iconHtml = '';
+                if(meta.img) {
+                    iconHtml = `<img src="${meta.img}" class="w-8 h-8 rounded-full mr-2">`;
+                } else if (meta.icon) {
+                    iconHtml = `<div class="w-8 h-8 rounded-full flex items-center justify-center text-white mr-2" style="background-color: ${meta.bg}"><i class="${meta.icon}"></i></div>`;
+                } else {
+                    const bgClass = meta.bg && !meta.bg.startsWith('#') ? meta.bg : '';
+                    const bgStyle = meta.bg && meta.bg.startsWith('#') ? `style="background-color:${meta.bg}"` : '';
+                    iconHtml = `<div class="w-8 h-8 rounded-full flex items-center justify-center text-white mr-2 text-xs font-bold ${bgClass}" ${bgStyle}>${meta.text || sym[0]}</div>`;
+                }
+
+                html += `
+                <div class="flex items-center justify-between" onclick="window.location.href='transaction.html?symbol=${sym}'">
+                    <div class="flex items-center w-1/3">
+                        ${iconHtml}
+                        <div>
+                            <div class="flex items-baseline">
+                                <span class="font-bold text-gray-800 text-sm">${meta.sym}</span>
+                                ${currentTab === 'crypto' ? '<span class="text-xs text-gray-400 ml-1">/USDT</span>' : ''}
+                            </div>
+                            <div class="text-xs text-gray-400">${Math.floor(item.volume || 0).toLocaleString()}</div>
+                        </div>
+                    </div>
+                    <div class="w-1/3 text-center font-bold text-gray-800">${priceStr}</div>
+                    <div class="w-1/3 flex justify-end">
+                        <div class="${isUp ? 'bg-green-custom' : 'bg-red-custom'} text-white px-3 py-1.5 rounded text-xs font-bold w-20 text-center">
+                            ${isUp ? '+' : ''}${chg}%
+                        </div>
+                    </div>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        async function fetchPrices() {
+            if(currentTab === 'crypto') {
+                try {
+                     const symbolsParam = JSON.stringify(lists.crypto);
+                     const url = `/api/markets?symbols=${encodeURIComponent(symbolsParam)}`;
+                     const res = await fetch(url);
+                     const allData = await res.json();
+                     
+                     if(Array.isArray(allData)) {
+                        allData.forEach(d => {
+                            if(d && d.symbol && lists.crypto.includes(d.symbol)) {
+                                cryptoData[d.symbol] = d;
+                            }
+                        });
+                        renderList();
+                     }
+                } catch(e) { console.error(e); }
+            } else {
+                updateMockData(currentTab);
+                renderList();
+            }
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchUserData();
+            fetchPrices();
+            setInterval(fetchPrices, 3000); // Poll every 3s
+            
+            // Initial render empty/loading
+            renderList();
         });
     </script>
 </body>

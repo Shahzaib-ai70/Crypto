@@ -3,1270 +3,478 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bitsafe - Futures</title>
-    <!-- Tailwind CSS -->
+    <title>Futures Trading - BitSafe</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Lightweight Charts -->
-    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #ffffff;
-        }
-        .text-green-custom {
-            color: #0ECB81;
-        }
-        .bg-green-custom {
-            background-color: #0ECB81;
-        }
-        .text-red-custom {
-            color: #F6465D;
-        }
-        .bg-red-custom {
-            background-color: #F6465D;
-        }
-        .text-yellow-custom {
-            color: #F0B90B;
-        }
-        .bg-yellow-custom {
-            background-color: #ffb11a;
-        }
-        .bottom-nav-item.active {
-            color: #1f2937;
-        }
-        .bottom-nav-item {
-            color: #9ca3af;
-        }
-        .chart-grid-line {
-            stroke: #f3f4f6;
-            stroke-width: 1;
-        }
-        .ma-line-5 { stroke: #fbbf24; stroke-width: 1.5; fill: none; }
-        .ma-line-10 { stroke: #a78bfa; stroke-width: 1.5; fill: none; }
-        .ma-line-30 { stroke: #60a5fa; stroke-width: 1.5; fill: none; }
-        .price-line { stroke: #3b82f6; stroke-width: 2; fill: none; }
-        .price-area { fill: rgba(59, 130, 246, 0.1); }
+        body { font-family: 'Inter', sans-serif; background-color: #ffffff; color: #1f2937; }
+        .text-green-custom { color: #0ECB81; }
+        .bg-green-custom { background-color: #0ECB81; }
+        .text-red-custom { color: #F6465D; }
+        .bg-red-custom { background-color: #F6465D; }
+        .bottom-nav-item.active { color: #1f2937; }
+        .bottom-nav-item { color: #9ca3af; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="pb-20 max-w-md mx-auto bg-white min-h-screen shadow-lg overflow-x-hidden flex flex-col relative">
+<body class="pb-20">
 
     <!-- Header -->
-    <div class="px-4 pt-4 flex items-center justify-between">
-
-    </div>
-
-    <!-- Top Tabs -->
-    <div class="px-4 pt-4 pb-2 flex items-center space-x-6 overflow-x-auto no-scrollbar border-b border-gray-100">
-        <div id="tabCrypto" class="border-b-2 border-yellow-custom pb-1 font-bold text-gray-800 text-lg cursor-pointer whitespace-nowrap" data-i18n="crypto">Crypto</div>
-        <div id="tabStock" class="pb-1 font-medium text-gray-400 text-lg cursor-pointer whitespace-nowrap" data-i18n="stock">Stock</div>
-        <div id="tabForex" class="pb-1 font-medium text-gray-400 text-lg cursor-pointer whitespace-nowrap" data-i18n="forex">Forex</div>
-        <div id="tabGold" class="pb-1 font-medium text-gray-400 text-lg cursor-pointer whitespace-nowrap" data-i18n="gold">Gold</div>
-    </div>
-
-    <!-- Ticker Info -->
-    <div class="px-4 py-3 flex justify-between items-start relative">
-        <div>
-            <div class="flex items-center mb-1">
-                <button id="pairTrigger" class="flex items-center">
-                    <h1 id="pairName" class="text-xl font-bold text-gray-800 mr-2">BTC/USDT</h1>
-                    <i class="fa-solid fa-caret-down text-gray-800 text-xs"></i>
-                </button>
-            </div>
-            <div id="pairPrice" class="text-3xl font-bold text-green-custom mb-1">88294.30</div>
-            <div class="text-sm text-gray-500 font-medium">
-                <span id="pairUsd">$88253.11</span> <span class="text-green-custom ml-1">+1.63%</span>
+    <div class="flex items-center justify-between px-4 py-2 bg-white sticky top-0 z-40 border-b border-gray-100">
+        <div class="flex items-center gap-2" onclick="location.href='quotes.html'">
+            <i class="fa-solid fa-bars text-xl text-gray-600"></i>
+            <div class="flex flex-col">
+                <div class="flex items-center gap-2">
+                    <h1 class="text-lg font-bold" id="pairDisplay">BTC/USDT</h1>
+                    <span class="bg-gray-100 text-gray-600 text-xs px-1 rounded font-medium">Perp</span>
+                </div>
             </div>
         </div>
-        <div class="text-[10px] text-gray-500 space-y-1 text-right min-w-[100px]">
-            <div class="flex justify-between">
-                <span data-i18n="24h_high">24h High</span>
-                <span id="statHigh" class="text-gray-800">89374.60</span>
-            </div>
-            <div class="flex justify-between">
-                <span data-i18n="24h_low">24h Low</span>
-                <span id="statLow" class="text-gray-800">86651.90</span>
-            </div>
-            <div class="flex justify-between">
-                <span data-i18n="turnover">Turnover</span>
-                <span id="statVolBTC" class="text-gray-800">145875.746</span>
-            </div>
-            <div class="flex justify-between">
-                <span data-i18n="volume">Volume</span>
-                <span id="statVolUSDT" class="text-gray-800 dark:text-white">128.28B</span>
-            </div>
-        </div>
-        <div id="pairDropdown" class="hidden absolute top-12 left-4 z-40 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-lg w-40">
-            <button class="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-white" data-symbol="BTC/USDT">BTC/USDT</button>
-            <button class="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-white" data-symbol="ETH/USDT">ETH/USDT</button>
-            <button class="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-white" data-symbol="LTC/USDT">LTC/USDT</button>
-            <button class="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-white" data-symbol="XRP/USDT">XRP/USDT</button>
-            <button class="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-white" data-symbol="DOGE/USDT">DOGE/USDT</button>
-            <button class="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-800 dark:text-white" data-symbol="SOL/USDT">SOL/USDT</button>
+        <div class="flex gap-4 text-gray-600 items-center">
+            <span class="text-xs bg-gray-100 px-2 py-1 rounded">Cross</span>
+            <span class="text-xs bg-gray-100 px-2 py-1 rounded">20x</span>
+            <i class="fa-solid fa-ellipsis-vertical text-lg"></i>
         </div>
     </div>
 
-    <!-- Timeframe Selector -->
-    <div class="px-4 py-2 flex justify-between text-xs text-gray-400 border-b border-gray-100 items-center">
-        <span class="bg-gray-900 text-white px-2 py-0.5 rounded font-bold">TIME</span>
-        <span>1M</span>
-        <span>5M</span>
-        <span>15M</span>
-        <span>30M</span>
-        <span>1H</span>
-        <span>1D</span>
-    </div>
-
-    <!-- Chart Area (Real-time with Lightweight Charts) -->
-    <div class="flex-1 relative w-full h-full bg-white min-h-[350px]">
-        <div id="chart" class="w-full h-full flex items-center justify-center text-gray-400">Loading chart...</div>
-    </div>
-
-    <!-- Volume and MACD Section (Bottom Half) -->
-    <div class="h-48 border-t border-gray-200 relative">
-        <!-- Volume Legend -->
-        <div class="flex text-[8px] px-4 py-1 space-x-2">
-             <span class="text-gray-300">VOL(5,10,20)</span>
-             <span class="text-yellow-500">MA5: 29.79</span>
-             <span class="text-green-custom">VOLUME: 17.17</span>
-        </div>
+    <!-- Main Trading Interface -->
+    <div class="flex p-2 gap-2">
         
-        <!-- Volume Chart -->
-        <div class="h-20 px-4 flex items-end justify-between space-x-1 border-b border-gray-100 pb-1">
-             <!-- Simulated Bars -->
-             <div class="w-2 h-10 bg-red-custom opacity-70"></div>
-             <div class="w-2 h-6 bg-green-custom opacity-70"></div>
-             <div class="w-2 h-14 bg-red-custom opacity-70"></div>
-             <div class="w-2 h-4 bg-green-custom opacity-70"></div>
-             <div class="w-2 h-8 bg-green-custom opacity-70"></div>
-             <div class="w-2 h-12 bg-red-custom opacity-70"></div>
-             <div class="w-2 h-5 bg-green-custom opacity-70"></div>
-             <div class="w-2 h-16 bg-green-custom opacity-70"></div>
-             <div class="w-2 h-3 bg-red-custom opacity-70"></div>
-             <div class="w-2 h-9 bg-green-custom opacity-70"></div>
-             <div class="w-2 h-11 bg-red-custom opacity-70"></div>
-             <div class="w-2 h-7 bg-green-custom opacity-70"></div>
-             <div class="w-2 h-15 bg-red-custom opacity-70"></div>
-             <div class="w-2 h-4 bg-green-custom opacity-70"></div>
-             <div class="w-2 h-10 bg-red-custom opacity-70"></div>
-             <div class="w-2 h-6 bg-green-custom opacity-70"></div>
-             <div class="w-2 h-12 bg-red-custom opacity-70"></div>
-             <div class="w-2 h-8 bg-green-custom opacity-70"></div>
-             <div class="w-2 h-5 bg-red-custom opacity-70"></div>
-             <div class="w-2 h-9 bg-green-custom opacity-70"></div>
+        <!-- Left Column: Order Book -->
+        <div class="w-5/12 flex flex-col">
+            <div class="flex justify-between text-[10px] text-gray-400 mb-1 px-1">
+                <span>Price</span>
+                <span>Amount</span>
+            </div>
+            
+            <!-- Asks -->
+            <div id="asksBook" class="flex flex-col-reverse h-32 overflow-hidden text-[10px]">
+                <div class="text-center text-gray-300 mt-4">Loading...</div>
+            </div>
+
+            <!-- Current Price -->
+            <div class="py-2 flex flex-col items-center justify-center my-1 border-y border-gray-50">
+                <span id="currentPrice" class="text-lg font-bold text-green-custom">--</span>
+                <span id="estPrice" class="text-[10px] text-gray-400">≈ $--</span>
+            </div>
+
+            <!-- Bids -->
+            <div id="bidsBook" class="h-32 overflow-hidden text-[10px]"></div>
+            
+            <!-- Depth Select -->
+            <div class="mt-2 flex justify-between px-1">
+                <div class="bg-gray-100 rounded px-2 py-0.5 text-[10px] text-gray-500 flex items-center gap-1">
+                    <span>0.01</span>
+                    <i class="fa-solid fa-caret-down"></i>
+                </div>
+            </div>
         </div>
 
-        <!-- MACD Legend -->
-        <div class="flex text-[8px] px-4 py-1 space-x-2">
-             <span class="text-gray-300">MACD(12,26,9)</span>
-             <span class="text-yellow-500">DIF: 15.83</span>
-             <span class="text-purple-400">DEA: 15.97</span>
-             <span class="text-red-custom">MACD: -0.28</span>
-        </div>
+        <!-- Right Column: Trading Form -->
+        <div class="w-7/12 pl-2">
+            
+            <!-- Long/Short Tabs -->
+            <div class="flex rounded-lg overflow-hidden mb-3">
+                <button id="tabLong" onclick="setSide('long')" class="flex-1 py-2 text-sm font-semibold bg-green-custom text-white">Long</button>
+                <button id="tabShort" onclick="setSide('short')" class="flex-1 py-2 text-sm font-semibold bg-gray-100 text-gray-500">Short</button>
+            </div>
 
-        <!-- MACD Chart (Simulated) -->
-        <div class="h-16 px-4 flex items-center justify-center relative">
-             <!-- Zero Line -->
-             <div class="absolute w-full h-[1px] bg-gray-200"></div>
-             <!-- Histogram -->
-             <div class="flex items-center justify-between w-full h-full pt-4">
-                 <div class="w-1 h-2 bg-green-custom"></div>
-                 <div class="w-1 h-3 bg-green-custom"></div>
-                 <div class="w-1 h-1 bg-red-custom"></div>
-                 <div class="w-1 h-4 bg-red-custom"></div>
-                 <div class="w-1 h-2 bg-red-custom"></div>
-                 <div class="w-1 h-5 bg-green-custom"></div>
-                 <div class="w-1 h-3 bg-green-custom"></div>
-                 <div class="w-1 h-2 bg-red-custom"></div>
-                 <div class="w-1 h-4 bg-green-custom"></div>
-                 <div class="w-1 h-6 bg-green-custom"></div>
-                 <div class="w-1 h-3 bg-red-custom"></div>
-                 <div class="w-1 h-2 bg-green-custom"></div>
-             </div>
-             <!-- Lines (SVG overlay) -->
-             <svg class="absolute top-0 left-0 w-full h-full" preserveAspectRatio="none">
-                 <polyline points="0,40 50,35 100,45 150,30 200,40 250,35 300,45 350,40" fill="none" stroke="#fbbf24" stroke-width="1" />
-                 <polyline points="0,42 50,38 100,42 150,35 200,42 250,38 300,42 350,42" fill="none" stroke="#a78bfa" stroke-width="1" />
-             </svg>
-        </div>
-    </div>
+            <!-- Order Type -->
+            <div class="flex items-center justify-between bg-gray-50 rounded px-3 py-2 mb-2 border border-gray-200">
+                <span class="text-xs font-medium text-gray-700">Market Order</span>
+                <i class="fa-solid fa-caret-down text-gray-400 text-xs"></i>
+            </div>
 
-    <!-- Floating Action Buttons -->
-    <div class="fixed bottom-16 left-0 right-0 px-4 flex gap-4 z-30 max-w-md mx-auto bg-white pb-4 pt-2">
-        <button id="btnLong" class="flex-1 bg-green-custom text-white py-3 rounded-xl font-bold shadow-lg" data-i18n="open_long">Open long</button>
-        <button id="btnShort" class="flex-1 bg-red-custom text-white py-3 rounded-xl font-bold shadow-lg" data-i18n="open_short">Open short</button>
-    </div>
+            <!-- Time Selector (Hidden/Mocked for Binary Logic if needed, or exposed) -->
+            <!-- We expose it as "Settlement" to support the backend requirement -->
+            <div class="grid grid-cols-4 gap-1 mb-2">
+                <button onclick="setTime(30)" id="time30" class="time-btn py-1 bg-gray-100 rounded text-[10px] text-gray-500 border border-transparent hover:border-yellow-500">30s</button>
+                <button onclick="setTime(60)" id="time60" class="time-btn py-1 bg-gray-100 rounded text-[10px] text-gray-500 border border-transparent hover:border-yellow-500">60s</button>
+                <button onclick="setTime(180)" id="time180" class="time-btn py-1 bg-gray-100 rounded text-[10px] text-gray-500 border border-transparent hover:border-yellow-500">180s</button>
+                <button onclick="setTime(300)" id="time300" class="time-btn py-1 bg-gray-100 rounded text-[10px] text-gray-500 border border-transparent hover:border-yellow-500">300s</button>
+            </div>
 
-    <!-- Order Modal -->
-    <div id="orderModal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-end justify-center">
-        <div class="bg-white w-full max-w-md rounded-t-2xl p-5">
-            <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
-            <div class="flex items-center justify-between mb-4">
-                <div class="text-lg font-bold text-gray-800">Order confirmation</div>
-                <i class="fa-regular fa-credit-card text-gray-500"></i>
-            </div>
-            <div class="grid grid-cols-2 gap-2 text-sm mb-4">
-                <div>
-                    <div class="text-gray-400">Name</div>
-                    <div id="modalPair" class="font-semibold text-gray-800">BTC/USDT</div>
-                </div>
-                <div class="text-right">
-                    <div class="text-gray-400">Direction</div>
-                    <div id="modalDirection" class="font-semibold text-gray-800">Open long</div>
-                </div>
-                <div>
-                    <div class="text-gray-400">Current Price</div>
-                    <div id="modalPrice" class="font-semibold text-gray-800">88294.30</div>
-                </div>
-                <div class="text-right">
-                    <div class="text-gray-400">Fee</div>
-                    <div class="font-semibold text-gray-800">0.1%</div>
+            <!-- Amount Input -->
+            <div class="relative mb-2">
+                <div class="flex items-center border border-gray-300 rounded overflow-hidden h-10">
+                    <button class="w-8 h-full bg-gray-50 text-gray-500 hover:bg-gray-100" onclick="adjustAmount(-10)">-</button>
+                    <input id="inputAmount" type="number" step="10" class="flex-1 text-center text-sm outline-none font-semibold h-full" placeholder="Amount (USDT)">
+                    <button class="w-8 h-full bg-gray-50 text-gray-500 hover:bg-gray-100" onclick="adjustAmount(10)">+</button>
                 </div>
             </div>
-            <div class="mb-4">
-                <div class="text-sm text-gray-500 mb-2">Expiration Time</div>
-                <div id="expirationButtons" class="grid grid-cols-4 gap-2">
-                    <!-- Dynamic Buttons -->
-                </div>
-            </div>
-            <div class="mb-4">
-                <div class="text-sm text-gray-500 mb-1" id="amountLabel">Amount (≥ 10)</div>
-                <input id="modalAmount" type="number" min="10" class="w-full px-3 py-2 border rounded-lg" placeholder="Amount">
-            </div>
-            <div class="mb-2">
-                <div class="text-sm text-gray-500 mb-1">Currency</div>
-                <div class="w-full px-3 py-2 border rounded-lg bg-gray-50">USDT</div>
-            </div>
-            <div id="modalBalanceDisplay" class="text-xs text-gray-400 mb-4">Available: 0 USDT • Trial Fund: 0 USDT</div>
-            <button id="modalConfirm" class="w-full py-3 bg-yellow-custom text-gray-900 rounded-xl font-bold">Confirm</button>
-            <button id="modalClose" class="w-full py-2 mt-2 text-sm text-gray-500">Cancel</button>
-        </div>
-    </div>
 
-    <div id="countdownModal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-end justify-center">
-        <div class="bg-white w-full max-w-md rounded-t-2xl p-5">
-            <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
-            <div id="cdWheel" class="flex items-center justify-center mb-3">
-                <div class="relative w-28 h-28">
-                    <svg viewBox="0 0 100 100" class="absolute top-0 left-0 w-28 h-28">
-                        <circle cx="50" cy="50" r="45" stroke="#e5e7eb" stroke-width="8" fill="none"></circle>
-                        <circle id="cdCircle" cx="50" cy="50" r="45" stroke="#f59e0b" stroke-width="8" fill="none" stroke-linecap="round" transform="rotate(-90 50 50)" stroke-dasharray="282.743" stroke-dashoffset="282.743"></circle>
-                    </svg>
-                    <div id="cdText" class="absolute inset-0 flex items-center justify-center text-xl font-bold text-gray-800">0.0</div>
-                </div>
+            <!-- Percentages -->
+            <div class="grid grid-cols-4 gap-1 mb-3">
+                <button onclick="setPercent(25)" class="py-1 bg-gray-100 rounded text-[10px] text-gray-500 hover:bg-gray-200">25%</button>
+                <button onclick="setPercent(50)" class="py-1 bg-gray-100 rounded text-[10px] text-gray-500 hover:bg-gray-200">50%</button>
+                <button onclick="setPercent(75)" class="py-1 bg-gray-100 rounded text-[10px] text-gray-500 hover:bg-gray-200">75%</button>
+                <button onclick="setPercent(100)" class="py-1 bg-gray-100 rounded text-[10px] text-gray-500 hover:bg-gray-200">100%</button>
             </div>
-            <div id="cdBigResult" class="hidden text-2xl font-bold text-center mb-2">0 USDT</div>
-            <div class="text-center font-semibold text-gray-800 mb-2">Order Information</div>
-            <div class="grid grid-cols-2 gap-2 text-sm mb-4">
-                <div>
-                    <div class="text-gray-400">Pairs</div>
-                    <div id="cdPair" class="font-semibold text-gray-800">BTC/USDT</div>
-                </div>
-                <div class="text-right">
-                    <div class="text-gray-400">Transaction Price</div>
-                    <div id="cdTxn" class="font-semibold text-gray-800">0 USDT</div>
-                </div>
-                <div>
-                    <div class="text-gray-400">Buy Price</div>
-                    <div id="cdBuy" class="font-semibold text-gray-800">0.00</div>
-                </div>
-                <div class="text-right">
-                    <div class="text-gray-400">Direction</div>
-                    <div id="cdDir" class="font-semibold text-gray-800">Open long</div>
-                </div>
-                <div>
-                    <div id="cdPriceLabel" class="text-gray-400">Estimated income</div>
-                    <div id="cdIncome" class="font-semibold text-green-600">0 USDT</div>
-                </div>
-                <div class="text-right">
-                    <div class="text-gray-400">Settlement Price</div>
-                    <div id="cdSettle" class="font-semibold text-gray-800">0.00</div>
-                </div>
-            </div>
-            <div class="flex gap-3">
-                <button id="cdBack" class="flex-1 py-3 border rounded-xl text-gray-800">Back</button>
-                <button id="cdContinue" class="flex-1 py-3 bg-yellow-custom text-gray-900 rounded-xl font-bold">Continue</button>
-            </div>
-        </div>
-    </div>
 
-    <!-- Profile Menu Overlay -->
-    <div id="profileMenu" class="hidden fixed inset-0 z-40 bg-white transition-colors duration-200">
-        <div class="p-4 flex items-center justify-between border-b">
-            <button id="menuBackBtn" class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
-                <i class="fa-solid fa-arrow-left text-gray-700"></i>
+            <!-- Available -->
+            <div class="flex justify-between text-[11px] text-gray-500 mb-3">
+                <span>Avail</span>
+                <div class="flex items-center gap-1">
+                    <span id="availBalance" class="text-gray-800 font-medium">0.00 USDT</span>
+                    <i class="fa-solid fa-circle-plus text-yellow-500"></i>
+                </div>
+            </div>
+
+            <!-- Action Button -->
+            <button id="btnAction" onclick="submitOrder()" class="w-full py-3 rounded-lg bg-green-custom text-white font-bold text-base shadow-sm active:scale-95 transition-transform">
+                Open Long
             </button>
-            <div class="relative">
-                <i class="fa-solid fa-headset text-xl text-gray-700"></i>
-            </div>
-        </div>
-        <div class="p-4">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-12 h-12 rounded-full bg-yellow-200 flex items-center justify-center">
-                    <i class="fa-solid fa-user text-yellow-700"></i>
-                </div>
-                <div>
-                    <div id="menuUserName" class="font-semibold text-gray-800">Guest</div>
-                    <div id="menuUserId" class="text-xs text-gray-400">ID: —</div>
-                </div>
-            </div>
-            <div class="grid grid-cols-2 gap-3 mb-6">
-                <button id="btnPrimaryInfo" class="border rounded-xl p-4 text-left hover:bg-gray-50 transition-colors">
-                    <div class="font-semibold text-gray-800 mb-1" data-i18n="primary_information">Primary Information</div>
-                    <div id="primaryStatus" class="text-xs text-gray-400" data-i18n="review">Review</div>
-                </button>
-                <button id="btnAdvancedCert" class="border rounded-xl p-4 text-left hover:bg-gray-50 transition-colors">
-                    <div class="font-semibold text-gray-800 mb-1" data-i18n="advanced_certification">Advanced Certification</div>
-                    <div id="advancedStatus" class="text-xs text-gray-400" data-i18n="kyc">KYC</div>
-                </button>
-            </div>
-            <div class="space-y-1">
-                <a href="history.html?tab=deposit" class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                    <span class="text-gray-800" data-i18n="deposit_history">Deposit History</span>
-                    <i class="fa-solid fa-chevron-right text-gray-400"></i>
-                </a>
-                <a href="history.html?tab=withdraw" class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                    <span class="text-gray-800" data-i18n="withdraw_history">Withdraw History</span>
-                    <i class="fa-solid fa-chevron-right text-gray-400"></i>
-                </a>
-                <a href="history.html?tab=trade" class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                    <span class="text-gray-800" data-i18n="trade_history">Trade History</span>
-                    <i class="fa-solid fa-chevron-right text-gray-400"></i>
-                </a>
-                <div onclick="openLanguageModal()" class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors">
-                    <span class="text-gray-800" data-i18n="language">Language</span>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs text-gray-400" id="currentLangDisplay">English</span>
-                        <i class="fa-solid fa-chevron-right text-gray-400"></i>
-                    </div>
-                </div>
-                <a href="#" onclick="document.getElementById('teamModal').classList.remove('hidden')" class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                    <span class="text-gray-800" data-i18n="team">Team</span>
-                    <i class="fa-solid fa-chevron-right text-gray-400"></i>
-                </a>
-                <a href="#" class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
-                    <span class="text-gray-800" data-i18n="address">Address</span>
-                    <i class="fa-solid fa-chevron-right text-gray-400"></i>
-                </a>
-                <a href="#" class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
-                    <span class="text-gray-800" data-i18n="company_profile">Company Profile</span>
-                    <i class="fa-solid fa-chevron-right text-gray-400"></i>
-                </a>
-                <a href="#" class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
-                    <span class="text-gray-800" data-i18n="regulatory_license">Regulatory License</span>
-                    <i class="fa-solid fa-chevron-right text-gray-400"></i>
-                </a>
-            </div>
-        </div>
-        <div class="p-4">
-            <button id="logoutBtn" class="w-full py-3 border rounded-xl text-gray-800 hover:bg-red-50 hover:text-red-600 transition-colors" data-i18n="log_out">Log Out</button>
+
         </div>
     </div>
 
-    <!-- Team Modal -->
-    <div id="teamModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-white w-full max-w-sm rounded-2xl p-6 relative animate-scale-up mx-4 transition-colors duration-200">
-            <button onclick="document.getElementById('teamModal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-            <div class="text-center mb-6">
-                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fa-solid fa-users text-3xl text-yellow-600"></i>
-                </div>
-                <h2 class="text-xl font-bold text-gray-800">My Team</h2>
-                <p class="text-gray-500 text-sm mt-1">Team Overview</p>
-            </div>
-            <div class="text-center py-8">
-                <div class="text-4xl font-bold text-gray-800 mb-2">0</div>
-                <div class="text-gray-500">Total Team Members</div>
-            </div>
+    <!-- Orders Section (Tabs) -->
+    <div class="mt-4 border-t border-gray-100">
+        <div class="flex border-b border-gray-100">
+            <button class="px-4 py-3 text-sm font-semibold text-gray-800 border-b-2 border-yellow-500">Positions (0)</button>
+            <button class="px-4 py-3 text-sm text-gray-400">Orders</button>
         </div>
-    </div>
-
-    <!-- Language Modal -->
-    <div id="languageModal" class="hidden fixed inset-0 z-[60] flex items-end justify-center bg-black bg-opacity-50">
-        <div class="bg-white w-full max-w-md rounded-t-2xl p-6 relative h-[80vh] flex flex-col animate-slide-up">
-            <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-6 flex-shrink-0"></div>
-            <h2 class="text-xl font-bold text-gray-800 mb-4 flex-shrink-0" data-i18n="select_language">Select Language</h2>
-            <div class="overflow-y-auto flex-1 space-y-2 pr-2" id="languageList">
-                <!-- Languages injected by JS -->
-            </div>
-            <button onclick="document.getElementById('languageModal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-        </div>
-    </div>
-    
-    <!-- Primary Information Modal -->
-    <div id="primaryInfoModal" class="hidden fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-50">
-        <div class="bg-white w-full max-w-md rounded-t-2xl p-6 relative animate-slide-up">
-            <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-6"></div>
-            <h2 class="text-lg font-bold text-gray-800 mb-4">Primary Information</h2>
-            <div class="space-y-4">
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="text-xs text-gray-500">First Name</label>
-                        <input id="piFirstName" type="text" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm" placeholder="John">
-                    </div>
-                    <div>
-                        <label class="text-xs text-gray-500">Last Name</label>
-                        <input id="piLastName" type="text" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm" placeholder="Doe">
-                    </div>
-                </div>
-                <div>
-                    <label class="text-xs text-gray-500">Document Type</label>
-                    <select id="piDocType" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
-                        <option value="">Select</option>
-                        <option value="id_card">ID</option>
-                        <option value="passport">Passport</option>
-                        <option value="driving_licence">Driving Licence</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-xs text-gray-500">Document Number</label>
-                    <input id="piDocNumber" type="text" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm" placeholder="Enter number">
-                </div>
-                <div class="flex gap-3">
-                    <button id="piSubmitBtn" class="flex-1 bg-yellow-custom text-gray-900 py-2 rounded-xl font-semibold">Submit</button>
-                    <button onclick="document.getElementById('primaryInfoModal').classList.add('hidden')" class="flex-1 bg-gray-100 text-gray-900 py-2 rounded-xl font-semibold">Cancel</button>
-                </div>
-            </div>
-            <button onclick="document.getElementById('primaryInfoModal').classList.add('hidden')" class="absolute top-0 right-0 p-4 text-gray-400 hover:text-gray-600">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-        </div>
-    </div>
-
-    <!-- Advanced Certification Modal -->
-    <div id="advancedCertModal" class="hidden fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-50">
-        <div class="bg-white w-full max-w-md rounded-t-2xl p-6 relative animate-slide-up">
-            <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-6"></div>
-            <h2 class="text-lg font-bold text-gray-800 mb-4">Advanced Certification</h2>
-            <div class="space-y-4">
-                <div>
-                    <label class="text-xs text-gray-500">Document Type</label>
-                    <select id="acDocType" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
-                        <option value="">Select</option>
-                        <option value="id_card">ID</option>
-                        <option value="passport">Passport</option>
-                        <option value="driving_licence">Driving Licence</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-xs text-gray-500">Document Number</label>
-                    <input id="acDocNumber" type="text" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm" placeholder="Enter number">
-                </div>
-                <div class="grid grid-cols-1 gap-3">
-                    <div>
-                        <label class="text-xs text-gray-500">Upload Front</label>
-                        <input id="acFront" type="file" accept="image/*" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
-                    </div>
-                    <div>
-                        <label class="text-xs text-gray-500">Upload Back</label>
-                        <input id="acBack" type="file" accept="image/*" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
-                    </div>
-                    <div>
-                        <label class="text-xs text-gray-500">Selfie Live</label>
-                        <input id="acSelfie" type="file" accept="image/*" class="mt-1 w-full border rounded-lg px-3 py-2 text-sm">
-                    </div>
-                </div>
-                <div class="flex gap-3">
-                    <button id="acSubmitBtn" class="flex-1 bg-yellow-custom text-gray-900 py-2 rounded-xl font-semibold">Submit</button>
-                    <button onclick="document.getElementById('advancedCertModal').classList.add('hidden')" class="flex-1 bg-gray-100 text-gray-900 py-2 rounded-xl font-semibold">Cancel</button>
-                </div>
-            </div>
-            <button onclick="document.getElementById('advancedCertModal').classList.add('hidden')" class="absolute top-0 right-0 p-4 text-gray-400 hover:text-gray-600">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
+        <div class="p-8 text-center text-gray-400 text-sm">
+            <i class="fa-solid fa-clipboard-list text-4xl mb-2 text-gray-200"></i>
+            <p>No Open Positions</p>
         </div>
     </div>
 
     <!-- Bottom Navigation -->
-    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 px-6 flex justify-between items-center z-20 max-w-md mx-auto">
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 px-6 flex justify-between items-center z-50 max-w-md mx-auto">
         <a href="index.html" class="flex flex-col items-center bottom-nav-item cursor-pointer">
             <i class="fa-solid fa-house text-xl mb-1"></i>
-            <span class="text-[10px]" data-i18n="home_page">Home Page</span>
+            <span class="text-[10px]">Home</span>
         </a>
         <a href="quotes.html" class="flex flex-col items-center bottom-nav-item cursor-pointer">
             <i class="fa-solid fa-chart-simple text-xl mb-1"></i>
-            <span class="text-[10px]" data-i18n="quotes">Quotes</span>
+            <span class="text-[10px]">Quotes</span>
         </a>
-        <a href="transaction.html" class="relative top-6 opacity-90">
+        <a href="transaction.html" class="flex flex-col items-center bottom-nav-item cursor-pointer">
+            <i class="fa-solid fa-arrow-right-arrow-left text-xl mb-1"></i>
+            <span class="text-[10px]">Spot</span>
+        </a>
+        <a href="futures.html" class="relative -top-5">
             <div class="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
-                <i class="fa-solid fa-arrow-right-arrow-left text-white text-lg transform rotate-45"></i>
+                <i class="fa-solid fa-file-contract text-white text-lg"></i>
             </div>
             <div class="text-center mt-1">
-                <span class="text-[10px] text-gray-500" data-i18n="transaction">Transaction</span>
+                <span class="text-[10px] text-gray-900 font-semibold">Futures</span>
             </div>
         </a>
-        <div class="flex flex-col items-center bottom-nav-item active text-gray-900 cursor-pointer">
-            <i class="fa-solid fa-file-contract text-xl mb-1"></i>
-            <span class="text-[10px]" data-i18n="futures">Futures</span>
-        </div>
         <a href="assets.html" class="flex flex-col items-center bottom-nav-item cursor-pointer">
             <i class="fa-solid fa-wallet text-xl mb-1"></i>
-            <span class="text-[10px]" data-i18n="assets">Assets</span>
+            <span class="text-[10px]">Assets</span>
         </a>
     </div>
 
-    <!-- Toast Notification -->
-    <div id="toastContainer" class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[60] flex flex-col gap-2 w-full max-w-xs px-4 pointer-events-none"></div>
-
-</body>
-<script src="translations.js"></script>
-<script>
-    // Initialize Language
-    document.addEventListener('DOMContentLoaded', () => {
-        const savedLang = localStorage.getItem('appLanguage') || 'English';
-        if (typeof setLanguage === 'function') {
-            setLanguage(savedLang);
-        }
-    });
-
-    // Toast Function
-    function showToast(message, type = 'error') {
-        const container = document.getElementById('toastContainer');
-        const toast = document.createElement('div');
-        toast.className = `pointer-events-auto flex items-center p-4 mb-2 rounded-lg shadow-lg text-white transform transition-all duration-300 translate-y-[-100%] opacity-0 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
-        toast.innerHTML = `
-            <div class="flex-shrink-0 mr-3">
-                <i class="fa-solid ${type === 'success' ? 'fa-check-circle' : 'fa-circle-exclamation'}"></i>
+    <!-- Countdown Modal (Hidden by default) -->
+    <div id="countdownModal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-end justify-center">
+        <div class="bg-white w-full max-w-md rounded-t-2xl p-5 pb-8">
+            <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
+            
+            <div class="text-center mb-4">
+                <h3 class="text-lg font-bold text-gray-800" id="cdPair">BTC/USDT</h3>
+                <span class="text-sm px-2 py-0.5 rounded bg-green-100 text-green-700 font-bold" id="cdDirBadge">Long</span>
             </div>
-            <div class="text-sm font-medium">${message}</div>
-        `;
-        
-        container.appendChild(toast);
-        
-        // Animate in
-        requestAnimationFrame(() => {
-            toast.classList.remove('translate-y-[-100%]', 'opacity-0');
+
+            <!-- Circle Countdown -->
+            <div class="flex items-center justify-center mb-6">
+                <div class="relative w-32 h-32">
+                    <svg viewBox="0 0 100 100" class="absolute top-0 left-0 w-32 h-32 transform -rotate-90">
+                        <circle cx="50" cy="50" r="45" stroke="#e5e7eb" stroke-width="8" fill="none"></circle>
+                        <circle id="cdCircle" cx="50" cy="50" r="45" stroke="#f59e0b" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="0"></circle>
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center">
+                        <span id="cdText" class="text-3xl font-bold text-gray-800">0.0</span>
+                        <span class="text-xs text-gray-400">Seconds</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 text-sm mb-6 bg-gray-50 p-4 rounded-xl">
+                <div>
+                    <div class="text-gray-400">Entry Price</div>
+                    <div id="cdEntry" class="font-semibold text-gray-800">--</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-gray-400">Amount</div>
+                    <div id="cdAmount" class="font-semibold text-gray-800">--</div>
+                </div>
+            </div>
+
+            <button onclick="closeModal()" class="w-full py-3 bg-gray-200 text-gray-700 rounded-xl font-bold">Run in Background</button>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="resultModal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-6 text-center shadow-2xl scale-in">
+            <div id="resIcon" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"></div>
+            <h2 id="resTitle" class="text-2xl font-bold mb-1">Win</h2>
+            <div id="resProfit" class="text-xl font-bold mb-6 text-green-500">+0.00 USDT</div>
+            <button onclick="document.getElementById('resultModal').classList.add('hidden')" class="w-full py-3 bg-gray-900 text-white rounded-xl font-bold">Close</button>
+        </div>
+    </div>
+
+    <script src="translations.js"></script>
+    <script>
+        const API_BASE = `${window.location.origin}/api`;
+        let currentSymbol = 'BTCUSDT';
+        let currentSide = 'long';
+        let currentPrice = 0;
+        let availableUSDT = 0;
+        let coinName = 'BTC';
+        let selectedTime = 60; // Default seconds
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const s = urlParams.get('symbol');
+            if(s) currentSymbol = s.toUpperCase().replace('/','');
+            
+            coinName = currentSymbol.replace('USDT','');
+            document.getElementById('pairDisplay').textContent = `${coinName}/USDT`;
+            document.getElementById('cdPair').textContent = `${coinName}/USDT`;
+
+            // Init Time
+            setTime(60);
+
+            // Fetch
+            fetchData();
+            fetchUserData();
+            setInterval(fetchData, 2000);
+            setInterval(fetchUserData, 5000);
         });
 
-        // Remove after 3 seconds
-        setTimeout(() => {
-            toast.classList.add('opacity-0', 'translate-y-[-100%]');
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
-    }
-
-    const prices = {}; // Initialized empty, populated by API
-
-    
-    // Mock prices for other categories
-    const mockPrices = {
-        // Stocks
-        'AAPL': 175.50, 'TSLA': 240.30, 'GOOGL': 165.20, 'AMZN': 180.10,
-        'MSFT': 420.50, 'NFLX': 610.20, 'NVDA': 950.00, 'META': 490.50, 'AMD': 170.80, 'INTC': 30.50,
-        // Forex
-        'EUR/USD': 1.0850, 'GBP/USD': 1.2640, 'USD/JPY': 151.20, 'AUD/USD': 0.6540,
-        'USD/CAD': 1.3520, 'USD/CHF': 0.9050, 'NZD/USD': 0.6010,
-        // Gold / Commodities
-        'XAU/USD': 2350.50, 'XAG/USD': 28.40, 'WTI/USD': 82.50, 'BRENT/USD': 87.20
-    };
-
-    let selectedPair = 'BTC/USDT';
-    let currentCategory = 'crypto';
-    
-    // WebSocket for Real-Time Crypto Data
-    let ws = null;
-    let wsSymbol = null;
-
-    function initWebSocket() {
-        console.log("Using Backend Polling for prices...");
-        // WebSocket disabled to ensure all traffic goes through backend proxy
-        /*
-        if (currentCategory !== 'crypto') {
-            if (ws) { ws.close(); ws = null; }
-            wsSymbol = null;
-            return;
-        }
-
-        const symbol = selectedPair.replace('/', '').toLowerCase();
-        
-        // If already connected to the same symbol, do nothing
-        if (ws && ws.readyState === WebSocket.OPEN && wsSymbol === symbol) return;
-
-        // If connected to a different symbol, close and reconnect
-        if (ws) {
-            ws.close();
-        }
-
-        wsSymbol = symbol;
-        // Use standard port 443
-        ws = new WebSocket('wss://stream.binance.com/ws/' + symbol + '@ticker');
-
-        ws.onopen = () => {
-            console.log('Connected to Binance WS for ' + symbol);
-        };
-
-        ws.onmessage = (event) => {
+        async function fetchData() {
+            // Ticker
             try {
-                const msg = JSON.parse(event.data);
-                if (msg.e === '24hrTicker') {
-                    const price = parseFloat(msg.c);
-                    const high = parseFloat(msg.h);
-                    const low = parseFloat(msg.l);
-                    const vol = parseFloat(msg.v);
-                    const qVol = parseFloat(msg.q);
-                    const changePct = parseFloat(msg.P);
-                    
-                    // Update global state
-                    prices[selectedPair] = price;
-                    
-                    // Update UI
-                    requestAnimationFrame(() => {
-                        const pairPrice = document.getElementById('pairPrice');
-                        const pairUsd = document.getElementById('pairUsd');
-                        const statHigh = document.getElementById('statHigh');
-                        const statLow = document.getElementById('statLow');
-                        const statVolBTC = document.getElementById('statVolBTC');
-                        const statVolUSDT = document.getElementById('statVolUSDT');
-                        const modalPrice = document.getElementById('modalPrice');
-                        const orderModal = document.getElementById('orderModal');
-
-                        if(pairPrice) {
-                            pairPrice.textContent = price.toFixed(2);
-                            pairPrice.className = `text-3xl font-bold ${changePct >= 0 ? 'text-green-custom' : 'text-red-custom'} mb-1`;
-                        }
-                        if(pairUsd) {
-                            pairUsd.innerHTML = '$' + price.toFixed(2) + ` <span class="${changePct >= 0 ? 'text-green-custom' : 'text-red-custom'} ml-1">${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%</span>`;
-                        }
-                        
-                        if(statHigh) statHigh.textContent = high.toFixed(2);
-                        if(statLow) statLow.textContent = low.toFixed(2);
-                        if(statVolBTC) statVolBTC.textContent = vol.toFixed(3);
-                        if(statVolUSDT) statVolUSDT.textContent = (qVol / 1000000).toFixed(2) + 'M';
-                        
-                        if (modalPrice && orderModal && !orderModal.classList.contains('hidden')) {
-                            modalPrice.textContent = price.toFixed(2);
-                        }
-                    });
+                const res = await fetch(`${API_BASE}/markets?symbols=${currentSymbol}`);
+                if(res.ok) {
+                    const data = await res.json();
+                    if(data && data.length > 0) updateTicker(data[0]);
                 }
-            } catch(e) { console.error("WS Parse Error", e); }
-        };
+            } catch(e) {}
 
-        ws.onerror = (e) => {
-            console.error("WS Error", e);
-        };
-        
-        ws.onclose = () => {
-            wsSymbol = null;
-            // Auto reconnect if still on crypto
-            if(currentCategory === 'crypto') {
-                setTimeout(initWebSocket, 5000);
-            }
-        };
-        */
-    }
-
-    const assetLists = {
-        crypto: [
-            'BTC/USDT', 'ETH/USDT', 'LTC/USDT', 'XRP/USDT', 'DOGE/USDT', 'SOL/USDT',
-            'BNB/USDT', 'ADA/USDT', 'MATIC/USDT', 'DOT/USDT', 'AVAX/USDT', 'TRX/USDT',
-            'LINK/USDT', 'ATOM/USDT', 'UNI/USDT', 'ETC/USDT', 'FIL/USDT', 'BCH/USDT', 'SHIB/USDT'
-        ],
-        stock: ['AAPL', 'TSLA', 'GOOGL', 'AMZN', 'MSFT', 'NFLX', 'NVDA', 'META', 'AMD', 'INTC'],
-        forex: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CAD', 'USD/CHF', 'NZD/USD'],
-        gold: ['XAU/USD', 'XAG/USD', 'WTI/USD', 'BRENT/USD']
-    };
-
-    // Check URL params
-    const urlParams = new URLSearchParams(window.location.search);
-    const paramSymbol = urlParams.get('symbol');
-    if(paramSymbol) {
-        let found = false;
-        // Try to match against assetLists
-        for(const [cat, list] of Object.entries(assetLists)) {
-             for(const asset of list) {
-                 // Check exact match or unslashed match
-                 if(asset === paramSymbol || asset.replace('/', '') === paramSymbol) {
-                     selectedPair = asset;
-                     currentCategory = cat;
-                     found = true;
-                     break;
-                 }
-             }
-             if(found) break;
+            // Depth
+            try {
+                const res = await fetch(`${API_BASE}/depth?symbol=${currentSymbol}&limit=10`);
+                if(res.ok) {
+                    const depth = await res.json();
+                    updateOrderBook(depth);
+                }
+            } catch(e) {}
         }
-        
-        if(!found) {
-            // Fallback heuristic if not in lists
-            if(!paramSymbol.includes('/')) {
-                 if(paramSymbol.endsWith('USDT')) {
-                     selectedPair = paramSymbol.replace('USDT', '/USDT');
-                     currentCategory = 'crypto';
-                 } else {
-                     selectedPair = paramSymbol;
-                 }
+
+        function updateTicker(ticker) {
+            currentPrice = parseFloat(ticker.lastPrice);
+            const chg = parseFloat(ticker.priceChangePercent);
+            
+            const priceEl = document.getElementById('currentPrice');
+            priceEl.textContent = currentPrice.toFixed(2);
+            priceEl.className = `text-lg font-bold ${chg >= 0 ? 'text-green-custom' : 'text-red-custom'}`;
+            document.getElementById('estPrice').textContent = `≈ $${currentPrice.toFixed(2)}`;
+        }
+
+        function updateOrderBook(depth) {
+            const asksContainer = document.getElementById('asksBook');
+            const bidsContainer = document.getElementById('bidsBook');
+            
+            let asksHtml = '';
+            depth.asks.slice(0, 7).forEach(ask => {
+                const px = parseFloat(ask[0]).toFixed(2);
+                const amt = parseFloat(ask[1]).toFixed(4);
+                asksHtml += `
+                    <div class="flex justify-between items-center h-5 relative">
+                        <span class="text-red-custom z-10">${px}</span>
+                        <span class="text-gray-500 z-10">${amt}</span>
+                        <div class="absolute right-0 top-0 bottom-0 bg-red-50 opacity-50" style="width: ${Math.min(parseFloat(ask[1])*10, 100)}%"></div>
+                    </div>`;
+            });
+            asksContainer.innerHTML = asksHtml;
+
+            let bidsHtml = '';
+            depth.bids.slice(0, 7).forEach(bid => {
+                const px = parseFloat(bid[0]).toFixed(2);
+                const amt = parseFloat(bid[1]).toFixed(4);
+                bidsHtml += `
+                    <div class="flex justify-between items-center h-5 relative">
+                        <span class="text-green-custom z-10">${px}</span>
+                        <span class="text-gray-500 z-10">${amt}</span>
+                        <div class="absolute right-0 top-0 bottom-0 bg-green-50 opacity-50" style="width: ${Math.min(parseFloat(bid[1])*10, 100)}%"></div>
+                    </div>`;
+            });
+            bidsContainer.innerHTML = bidsHtml;
+        }
+
+        async function fetchUserData() {
+            try {
+                const res = await fetch(`${API_BASE}/me`);
+                if(res.ok) {
+                    const user = await res.json();
+                    if(user) {
+                        const usdtBal = user.balances ? user.balances.find(b => b.currency === 'USDT') : null;
+                        availableUSDT = usdtBal ? usdtBal.amount : (user.balance || 0);
+                        document.getElementById('availBalance').textContent = `${availableUSDT.toFixed(2)} USDT`;
+                    }
+                }
+            } catch(e) {}
+        }
+
+        function setSide(side) {
+            currentSide = side;
+            const btnLong = document.getElementById('tabLong');
+            const btnShort = document.getElementById('tabShort');
+            const btnAction = document.getElementById('btnAction');
+
+            if(side === 'long') {
+                btnLong.className = "flex-1 py-2 text-sm font-semibold bg-green-custom text-white transition-all";
+                btnShort.className = "flex-1 py-2 text-sm font-semibold bg-gray-100 text-gray-500 transition-all";
+                btnAction.className = "w-full py-3 rounded-lg bg-green-custom text-white font-bold text-base shadow-sm active:scale-95 transition-transform";
+                btnAction.textContent = "Open Long";
             } else {
-                selectedPair = paramSymbol;
+                btnLong.className = "flex-1 py-2 text-sm font-semibold bg-gray-100 text-gray-500 transition-all";
+                btnShort.className = "flex-1 py-2 text-sm font-semibold bg-red-custom text-white transition-all";
+                btnAction.className = "w-full py-3 rounded-lg bg-red-custom text-white font-bold text-base shadow-sm active:scale-95 transition-transform";
+                btnAction.textContent = "Open Short";
             }
         }
-         
-         // Update UI title immediately
-         const pairNameEl = document.getElementById('pairName');
-         if(pairNameEl) pairNameEl.textContent = selectedPair;
-         
-         // Update Tab UI
-         const tabs = ['crypto', 'stock', 'forex', 'gold'];
-         tabs.forEach(c => {
-            const t = document.getElementById('tab' + c.charAt(0).toUpperCase() + c.slice(1));
-            if(t) {
-                if(c === currentCategory) {
-                    t.classList.remove('font-medium', 'text-gray-400');
-                    t.classList.add('border-b-2', 'border-yellow-custom', 'font-bold', 'text-gray-800');
-                } else {
-                    t.classList.remove('border-b-2', 'border-yellow-custom', 'font-bold', 'text-gray-800');
-                    t.classList.add('font-medium', 'text-gray-400');
-                }
-            }
-         });
-     }
- 
-     // --- Tab Switching Logic ---
-    // const tabs = ... (already defined above in my inserted block, but original code defines it below)
-    // Wait, original code: const tabs = ['crypto', 'stock', 'forex', 'gold'];
-    // I should check if I am redeclaring it.
-    
-    // I can just remove 'const' if it's already defined, or move the definition up.
-    // The original code has `const tabs = ...` AFTER my insertion point.
-    // So if I use `tabs` inside the `if`, I need to define it there or before.
-    
-    // Let's look at the context again.
-    // I am inside the script tag. `tabs` is defined later.
-    
-    // I will define `const tabsList = ['crypto', 'stock', 'forex', 'gold'];` inside the if block to avoid conflict, or just move the global `tabs` definition up.
-    
-    // Moving `tabs` definition up is cleaner.
 
-    const tabs = ['crypto', 'stock', 'forex', 'gold'];
-    tabs.forEach(cat => {
-        const el = document.getElementById('tab' + cat.charAt(0).toUpperCase() + cat.slice(1));
-        if (el) {
-            el.addEventListener('click', () => {
-                // Update active state
-                tabs.forEach(c => {
-                    const t = document.getElementById('tab' + c.charAt(0).toUpperCase() + c.slice(1));
-                    t.classList.remove('border-b-2', 'border-yellow-custom', 'font-bold', 'text-gray-800');
-                    t.classList.add('font-medium', 'text-gray-400');
+        function setTime(sec) {
+            selectedTime = sec;
+            document.querySelectorAll('.time-btn').forEach(b => {
+                b.classList.remove('bg-yellow-100', 'text-yellow-700', 'border-yellow-500');
+                b.classList.add('bg-gray-100', 'text-gray-500', 'border-transparent');
+            });
+            const btn = document.getElementById(`time${sec}`);
+            if(btn) {
+                btn.classList.remove('bg-gray-100', 'text-gray-500', 'border-transparent');
+                btn.classList.add('bg-yellow-100', 'text-yellow-700', 'border-yellow-500');
+            }
+        }
+
+        function setPercent(pct) {
+            const input = document.getElementById('inputAmount');
+            if(availableUSDT <= 0) return;
+            const val = availableUSDT * (pct/100);
+            input.value = Math.floor(val); // USDT usually whole numbers or 2 decimals? Floor for safety
+        }
+
+        function adjustAmount(delta) {
+            const input = document.getElementById('inputAmount');
+            let val = parseFloat(input.value) || 0;
+            val += delta;
+            if(val < 0) val = 0;
+            input.value = val;
+        }
+
+        async function submitOrder() {
+            const amount = document.getElementById('inputAmount').value;
+            if(!amount || parseFloat(amount) <= 0) {
+                alert("Please enter a valid amount");
+                return;
+            }
+
+            // 1. Submit Trade
+            try {
+                const res = await fetch(`${API_BASE}/trade`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: getCookie('user') || 'guest', // Handled by server cookie usually
+                        symbol: currentSymbol,
+                        side: currentSide,
+                        amount: amount,
+                        seconds: selectedTime
+                    })
                 });
-                el.classList.remove('font-medium', 'text-gray-400');
-                el.classList.add('border-b-2', 'border-yellow-custom', 'font-bold', 'text-gray-800');
-                
-                currentCategory = cat;
-                updateAssetDropdown();
-                
-                // Set default pair for category
-                if (cat === 'crypto') selectedPair = 'BTC/USDT';
-                else if (cat === 'stock') selectedPair = 'AAPL';
-                else if (cat === 'forex') selectedPair = 'EUR/USD';
-                else if (cat === 'gold') selectedPair = 'XAU/USD';
-                
-                // Update UI immediately
-                pairName.textContent = selectedPair;
-                mockCandles = []; // Reset chart history
-                updateTicker();
-                updateChart();
-                initWebSocket(); // Connect WS
-            });
-        }
-    });
 
-    function updateAssetDropdown() {
-        const dropdown = document.getElementById('pairDropdown');
-        dropdown.innerHTML = '';
-        
-        const assets = assetLists[currentCategory] || [];
-
-        assets.forEach(asset => {
-            const btn = document.createElement('button');
-            btn.className = 'w-full text-left px-3 py-2 hover:bg-gray-50';
-            btn.textContent = asset;
-            btn.onclick = () => {
-                    selectedPair = asset;
-                    pairName.textContent = asset;
-                    dropdown.classList.add('hidden');
-                    mockCandles = [];
-                    updateTicker();
-                    updateChart();
-                    // Reconnect WebSocket for the new asset
-                    initWebSocket();
-                };
-            dropdown.appendChild(btn);
-        });
-    }
-    
-    // Initial dropdown population
-    updateAssetDropdown();
-    
-    // Start WS
-    initWebSocket();
-
-    // --- Chart Initialization ---
-    const chartContainer = document.getElementById('chart');
-    
-    // Clear loading text
-    chartContainer.innerHTML = '';
-
-    const chart = LightweightCharts.createChart(chartContainer, {
-        width: chartContainer.clientWidth,
-        height: chartContainer.clientHeight || 350, // Fallback height
-        layout: {
-            background: { color: '#ffffff' },
-            textColor: '#333',
-        },
-        grid: {
-            vertLines: { color: '#f0f0f0' },
-            horzLines: { color: '#f0f0f0' },
-        },
-        crosshair: {
-            mode: LightweightCharts.CrosshairMode.Normal,
-        },
-        rightPriceScale: {
-            borderColor: '#dfdfdf',
-        },
-        timeScale: {
-            borderColor: '#dfdfdf',
-            timeVisible: true,
-        },
-    });
-
-    const candleSeries = chart.addCandlestickSeries({
-        upColor: '#0ECB81',
-        downColor: '#F6465D',
-        borderDownColor: '#F6465D',
-        borderUpColor: '#0ECB81',
-        wickDownColor: '#F6465D',
-        wickUpColor: '#0ECB81',
-    });
-
-    // Resize chart on window resize
-    window.addEventListener('resize', () => {
-        chart.applyOptions({ width: chartContainer.clientWidth, height: chartContainer.clientHeight });
-    });
-
-    async function updateChart() {
-        const symbol = selectedPair.replace('/', '');
-        
-        if (currentCategory === 'crypto') {
-            try {
-                const res = await fetch(window.location.origin + `/api/klines?symbol=${symbol}&interval=1m&limit=100`);
                 const data = await res.json();
-                if (Array.isArray(data)) {
-                    const candles = data.map(d => ({
-                        time: d[0] / 1000,
-                        open: parseFloat(d[1]),
-                        high: parseFloat(d[2]),
-                        low: parseFloat(d[3]),
-                        close: parseFloat(d[4]),
-                    }));
-                    candles.sort((a, b) => a.time - b.time);
-                    const uniqueCandles = [];
-                    let lastTime = null;
-                    for (const c of candles) {
-                        if (c.time !== lastTime) {
-                            uniqueCandles.push(c);
-                            lastTime = c.time;
-                        }
-                    }
-                    candleSeries.setData(uniqueCandles);
-                }
-            } catch (e) {
-                console.error("Chart update failed", e);
-            }
-        } else {
-            // Mock chart for non-crypto
-            generateMockChart(selectedPair);
-        }
-    }
-
-    let mockCandles = [];
-    let lastMockTime = 0;
-
-    function generateMockChart(sym) {
-        // Generate consistent mock history if needed
-        const now = Math.floor(Date.now() / 1000);
-        if (mockCandles.length === 0 || lastMockTime < now - 3600) {
-            mockCandles = [];
-            let price = mockPrices[sym] || 100;
-            for (let i = 100; i >= 0; i--) {
-                const time = now - i * 60;
-                const open = price;
-                const close = price * (1 + (Math.random() - 0.5) * 0.002);
-                const high = Math.max(open, close) * (1 + Math.random() * 0.001);
-                const low = Math.min(open, close) * (1 - Math.random() * 0.001);
-                mockCandles.push({ time, open, high, low, close });
-                price = close;
-            }
-            lastMockTime = now;
-        } else {
-            // Add new candle
-            if (now > mockCandles[mockCandles.length - 1].time + 60) {
-                 let last = mockCandles[mockCandles.length - 1];
-                 let price = last.close;
-                 const open = price;
-                 const close = price * (1 + (Math.random() - 0.5) * 0.002);
-                 const high = Math.max(open, close) * (1 + Math.random() * 0.001);
-                 const low = Math.min(open, close) * (1 - Math.random() * 0.001);
-                 mockCandles.push({ time: now, open, high, low, close });
-                 if (mockCandles.length > 100) mockCandles.shift();
-            }
-        }
-        candleSeries.setData(mockCandles);
-    }
-
-    // Auto-update every 5 seconds
-    setInterval(updateChart, 5000);
-    // Initial update
-    updateChart();
-
-    // --- Ticker / Stats Update ---
-    const statHigh = document.getElementById('statHigh');
-    const statLow = document.getElementById('statLow');
-    const statVolBTC = document.getElementById('statVolBTC');
-    const statVolUSDT = document.getElementById('statVolUSDT');
-
-    async function updateTicker() {
-        const symbol = selectedPair.replace('/', '');
-        
-        if (currentCategory === 'crypto') {
-            try {
-                const res = await fetch(window.location.origin + `/api/markets?symbols=${encodeURIComponent(JSON.stringify([symbol]))}`);
-                const data = await res.json();
-                if (Array.isArray(data) && data.length > 0) {
-                    const t = data[0];
-                    // Binance ticker/24hr returns lastPrice, highPrice, lowPrice, volume, quoteVolume
-                    const price = parseFloat(t.lastPrice || t.price); // Fallback to price if API changes
-                    
-                    if (!isNaN(price)) {
-                        // Update header price
-                        pairPrice.textContent = price.toFixed(2);
-                        pairUsd.textContent = '$' + price.toFixed(2);
-                        
-                        // Update stats
-                        let high = parseFloat(t.highPrice || t.high);
-                        if (isNaN(high)) high = price; // fallback to current if high is invalid
-                        statHigh.textContent = high.toFixed(2);
-
-                        let low = parseFloat(t.lowPrice || t.low);
-                        if (isNaN(low)) low = price; // fallback
-                        statLow.textContent = low.toFixed(2);
-
-                        let vol = parseFloat(t.volume);
-                        if (isNaN(vol)) vol = 0;
-                        statVolBTC.textContent = vol.toFixed(3);
-
-                        // Use quoteVolume for USDT volume if available
-                        let qVol = parseFloat(t.quoteVolume);
-                        if (isNaN(qVol)) qVol = vol * price;
-                        statVolUSDT.textContent = (qVol / 1000000).toFixed(2) + 'M';
-
-                        // Update global prices object for modal
-                        prices[selectedPair] = price;
-
-                        // Update Modal Price if open
-                        if (!orderModal.classList.contains('hidden')) {
-                            modalPrice.textContent = price.toFixed(2);
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error("Ticker update failed", e);
-            }
-        } else {
-            // Mock ticker for non-crypto
-            let price = prices[selectedPair] || mockPrices[selectedPair] || 100;
-            // Random walk
-            price = price * (1 + (Math.random() - 0.5) * 0.001);
-            prices[selectedPair] = price;
-            
-            pairPrice.textContent = price.toFixed(2);
-            pairUsd.textContent = '$' + price.toFixed(2);
-            
-            // Mock stats
-            statHigh.textContent = (price * 1.01).toFixed(2);
-            statLow.textContent = (price * 0.99).toFixed(2);
-            statVolBTC.textContent = (Math.random() * 1000).toFixed(2);
-            statVolUSDT.textContent = (Math.random() * 100).toFixed(2) + 'M';
-            
-            if (!orderModal.classList.contains('hidden')) {
-                modalPrice.textContent = price.toFixed(2);
-            }
-        }
-    }
-    
-    // Update ticker every 3s
-    setInterval(updateTicker, 3000);
-    updateTicker();
-
-    // Fetch User Balance
-    let currentUserBalance = 0;
-
-    async function fetchUserBalance() {
-        const u = localStorage.getItem('authUser');
-        if (!u) return;
-        try {
-            const res = await fetch(window.location.origin + '/api/me', { headers: { 'x-user': u } });
-            const data = await res.json();
-            if (data && data.balance !== undefined) {
-                currentUserBalance = parseFloat(data.balance);
-                const disp = document.getElementById('modalBalanceDisplay');
-                if(disp) {
-                    disp.innerHTML = `${window.t('available')}: ${currentUserBalance.toFixed(2)} USDT • ${window.t('trial_fund')}: 0 USDT`;
-                }
-            }
-        } catch(e) {
-            console.error("Balance fetch failed", e);
-        }
-    }
-    fetchUserBalance();
-    // Update balance periodically
-    setInterval(fetchUserBalance, 10000);
-
-    const pairTrigger = document.getElementById('pairTrigger');
-    const pairDropdown = document.getElementById('pairDropdown');
-    const pairName = document.getElementById('pairName');
-    const pairPrice = document.getElementById('pairPrice');
-    const pairUsd = document.getElementById('pairUsd');
-    pairTrigger.addEventListener('click', () => {
-        pairDropdown.classList.toggle('hidden');
-    });
-    const orderModal = document.getElementById('orderModal');
-    const modalPair = document.getElementById('modalPair');
-    const modalDirection = document.getElementById('modalDirection');
-    const modalPrice = document.getElementById('modalPrice');
-    const modalAmount = document.getElementById('modalAmount');
-    const modalConfirm = document.getElementById('modalConfirm');
-    const modalClose = document.getElementById('modalClose');
-    let expSelection = { secs: 30, pct: 25 };
-    let minTradeAmount = 10;
-
-    async function loadUserSettings() {
-        try {
-            const res = await fetch(getApiBase() + '/api/user/settings');
-            if (res.ok) {
-                const data = await res.json();
-                minTradeAmount = data.min_trade_amount || 10;
-                const lbl = document.getElementById('amountLabel');
-                if(lbl) lbl.innerHTML = `${window.t('amount')} (≥ ${minTradeAmount})`;
-                const inp = document.getElementById('modalAmount');
-                if(inp) inp.min = minTradeAmount;
-                
-                let settings = data.trade_settings;
-                if (!settings || settings.length === 0) {
-                    settings = [
-                        { seconds: 30, percent: 25 },
-                        { seconds: 60, percent: 50 },
-                        { seconds: 120, percent: 75 },
-                        { seconds: 300, percent: 100 }
-                    ];
-                }
-                
-                const container = document.getElementById('expirationButtons');
-                if (container) {
-                    container.innerHTML = '';
-                    settings.forEach((s, idx) => {
-                        const btn = document.createElement('button');
-                        btn.className = 'expBtn border rounded-xl p-2 text-center font-semibold';
-                        if (idx === 0) btn.classList.add('bg-gray-900', 'text-white');
-                        btn.dataset.secs = s.seconds;
-                        btn.dataset.pct = s.percent;
-                        btn.innerHTML = `${s.seconds}S<br><span class="text-gray-400 font-normal">${s.percent}%</span>`;
-                        
-                        btn.addEventListener('click', () => {
-                             document.querySelectorAll('.expBtn').forEach(b => b.classList.remove('bg-gray-900','text-white'));
-                             btn.classList.add('bg-gray-900','text-white');
-                             expSelection = { secs: s.seconds, pct: s.percent };
-                        });
-                        
-                        container.appendChild(btn);
-                        
-                        if (idx === 0) {
-                            expSelection = { secs: s.seconds, pct: s.percent };
-                        }
-                    });
-                }
-            }
-        } catch(e) {
-            console.error('Failed to load user settings', e);
-        }
-    }
-    
-    loadUserSettings();
-
-    function openOrder(dir) {
-        modalPair.textContent = selectedPair;
-        modalDirection.textContent = dir === 'long' ? window.t('open_long') : window.t('open_short');
-        const p = prices[selectedPair] || 0;
-        modalPrice.textContent = p.toFixed(2);
-        fetchUserBalance(); // Refresh balance when opening modal
-        orderModal.classList.remove('hidden');
-    }
-    document.getElementById('btnLong').addEventListener('click', () => openOrder('long'));
-    document.getElementById('btnShort').addEventListener('click', () => openOrder('short'));
-    // Exp buttons listener removed here as it is handled dynamically inside loadUserSettings
-    const cdModal = document.getElementById('countdownModal');
-    const cdCircle = document.getElementById('cdCircle');
-    const cdText = document.getElementById('cdText');
-    const cdPair = document.getElementById('cdPair');
-    const cdTxn = document.getElementById('cdTxn');
-    const cdBuy = document.getElementById('cdBuy');
-    const cdDir = document.getElementById('cdDir');
-    const cdSettle = document.getElementById('cdSettle');
-    const cdIncome = document.getElementById('cdIncome');
-    const cdWheel = document.getElementById('cdWheel');
-    const cdBigResult = document.getElementById('cdBigResult');
-    const cdPriceLabel = document.getElementById('cdPriceLabel');
-    const cdBack = document.getElementById('cdBack');
-    const cdContinue = document.getElementById('cdContinue');
-    let cdTimer = null;
-    let pendingTradeRes = null;
-    function startCountdown(secs, amt, pct, dir) {
-        const p = prices[selectedPair] || 0;
-        cdPair.textContent = selectedPair;
-        cdTxn.textContent = amt.toFixed(2) + ' USDT';
-        cdBuy.textContent = p.toFixed(2);
-        cdDir.textContent = dir === 'long' ? 'Open long' : 'Open short';
-        cdSettle.textContent = p.toFixed(2);
-        cdIncome.textContent = (amt * pct / 100).toFixed(2) + ' USDT';
-        cdIncome.classList.remove('text-red-600','text-green-600');
-        cdIncome.classList.add('text-green-600');
-        cdWheel.classList.remove('hidden');
-        cdBigResult.classList.add('hidden');
-        cdPriceLabel.textContent = 'Estimated income';
-        cdBigResult.classList.remove('text-red-600','text-green-600');
-        cdModal.classList.remove('hidden');
-        
-        // Hide buttons during trade
-        cdBack.classList.add('hidden');
-        cdContinue.classList.add('hidden');
-
-        const total = secs * 10;
-        let t = total;
-        const circumference = 2 * Math.PI * 45;
-        cdCircle.style.strokeDasharray = circumference.toFixed(3);
-        cdCircle.style.strokeDashoffset = circumference.toFixed(3);
-        cdText.textContent = (t/10).toFixed(1);
-        if (cdTimer) clearInterval(cdTimer);
-        cdTimer = setInterval(() => {
-            t -= 1;
-            if (t <= 0) {
-                clearInterval(cdTimer);
-                cdTimer = null;
-                const outcome = pendingTradeRes && (pendingTradeRes.result === 'win' || pendingTradeRes.result === 'lose')
-                    ? pendingTradeRes.result
-                    : (Math.random() < 0.5 ? 'win' : 'lose');
-                const profit = pendingTradeRes && typeof pendingTradeRes.profit === 'number'
-                    ? pendingTradeRes.profit
-                    : (outcome === 'win' ? amt * pct / 100 : -amt);
-                if (outcome === 'win') {
-                    const payout = amt + profit;
-                    cdBigResult.textContent = payout.toFixed(2) + ' USDT';
-                    cdIncome.textContent = Math.abs(profit).toFixed(2) + ' USDT';
-                    cdBigResult.classList.remove('text-red-600');
-                    cdBigResult.classList.add('text-green-600');
-                    cdIncome.classList.remove('text-red-600');
-                    cdIncome.classList.add('text-green-600');
+                if(res.ok) {
+                    // Start Countdown
+                    startCountdown(selectedTime, data.result, data.profit, amount, currentPrice);
+                    fetchUserData(); // Update balance
                 } else {
-                    cdBigResult.textContent = '-' + amt.toFixed(2) + ' USDT';
-                    cdIncome.textContent = Math.abs(profit).toFixed(2) + ' USDT';
-                    cdBigResult.classList.remove('text-green-600');
-                    cdBigResult.classList.add('text-red-600');
-                    cdIncome.classList.remove('text-green-600');
-                    cdIncome.classList.add('text-red-600');
+                    alert(data.error || "Trade failed");
                 }
-                cdText.textContent = '0.0';
-                cdCircle.style.strokeDashoffset = '0';
-                cdWheel.classList.add('hidden');
-                cdBigResult.classList.remove('hidden');
-                cdPriceLabel.textContent = 'Actual Income';
-                const base = prices[selectedPair] || 0;
-                const drift = base * (Math.random() - 0.5) * 0.0005;
-                cdSettle.textContent = (base + drift).toFixed(2);
-                
-                // Show buttons after trade completion
-                cdBack.classList.remove('hidden');
-                cdContinue.classList.remove('hidden');
-                
-                pendingTradeRes = null;
-                // Refresh balance
-                fetchUserBalance();
-                return;
+            } catch(e) {
+                alert("Network error");
             }
-            cdText.textContent = (t/10).toFixed(1);
-            const progress = (total - t) / total;
-            cdCircle.style.strokeDashoffset = (circumference * (1 - progress)).toFixed(3);
-        }, 100);
-    }
-    modalConfirm.addEventListener('click', async () => {
-        const amt = parseFloat(modalAmount.value);
-        if (!amt || amt < minTradeAmount) {
-            showToast(`Minimum trade amount is ${minTradeAmount} USDT`, 'error');
-            return;
-        }
-        
-        // Check insufficient balance
-        if (amt > currentUserBalance) {
-            showToast('Insufficient balance', 'error');
-            return;
         }
 
-        modalConfirm.disabled = true;
-        modalConfirm.textContent = 'Processing...';
-
-        const side = modalDirection.textContent.includes('long') ? 'long' : 'short';
-        const username = localStorage.getItem('authUser') || 'demo';
-        const symbol = selectedPair.replace('/', '');
-        
-        try {
-            const res = await fetch(getApiBase() + '/api/trade', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username,
-                    symbol,
-                    side,
-                    amount: amt,
-                    seconds: expSelection.secs,
-                    percent: expSelection.pct
-                })
-            });
-            
-            const data = await res.json();
-            
-            if (!res.ok) {
-                showToast(data.error || 'Trade failed', 'error');
-                modalConfirm.disabled = false;
-                modalConfirm.textContent = 'Confirm';
-                return;
-            }
-            
-            // Trade accepted
-            pendingTradeRes = data;
-            orderModal.classList.add('hidden');
-            startCountdown(expSelection.secs, amt, expSelection.pct, side);
-            modalAmount.value = '';
-            
-        } catch (e) {
-            console.error(e);
-            showToast('Network error', 'error');
-        } finally {
-            modalConfirm.disabled = false;
-            modalConfirm.textContent = 'Confirm';
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
         }
-    });
-    modalClose.addEventListener('click', () => {
-        orderModal.classList.add('hidden');
-    });
-    cdBack.addEventListener('click', () => {
-        cdModal.classList.add('hidden');
-        orderModal.classList.remove('hidden');
-    });
-    cdContinue.addEventListener('click', () => {
-        cdModal.classList.add('hidden');
-    });
-</script>
+
+        let countdownInterval;
+        function startCountdown(seconds, result, profit, amount, entryPrice) {
+            const modal = document.getElementById('countdownModal');
+            const cdText = document.getElementById('cdText');
+            const circle = document.getElementById('cdCircle');
+            const badge = document.getElementById('cdDirBadge');
+            
+            document.getElementById('cdEntry').textContent = entryPrice.toFixed(2);
+            document.getElementById('cdAmount').textContent = `${amount} USDT`;
+            
+            badge.textContent = currentSide === 'long' ? 'Long' : 'Short';
+            badge.className = currentSide === 'long' 
+                ? "text-sm px-2 py-0.5 rounded bg-green-100 text-green-700 font-bold"
+                : "text-sm px-2 py-0.5 rounded bg-red-100 text-red-700 font-bold";
+
+            modal.classList.remove('hidden');
+            
+            let left = seconds;
+            const total = seconds;
+            const circumference = 2 * Math.PI * 45; // r=45
+            
+            clearInterval(countdownInterval);
+            countdownInterval = setInterval(() => {
+                left--;
+                cdText.textContent = left.toFixed(1);
+                
+                // Update Circle
+                const offset = circumference - (left / total) * circumference;
+                circle.style.strokeDashoffset = offset;
+
+                if(left <= 0) {
+                    clearInterval(countdownInterval);
+                    closeModal();
+                    showResult(result, profit);
+                }
+            }, 1000);
+        }
+
+        function closeModal() {
+            document.getElementById('countdownModal').classList.add('hidden');
+        }
+
+        function showResult(result, profit) {
+            const modal = document.getElementById('resultModal');
+            const icon = document.getElementById('resIcon');
+            const title = document.getElementById('resTitle');
+            const prof = document.getElementById('resProfit');
+
+            modal.classList.remove('hidden');
+            if(result === 'win' || parseFloat(profit) > 0) {
+                icon.className = "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl bg-green-100 text-green-600";
+                icon.innerHTML = '<i class="fa-solid fa-check"></i>';
+                title.textContent = "Success";
+                title.className = "text-2xl font-bold mb-1 text-green-600";
+                prof.textContent = `+${parseFloat(profit).toFixed(2)} USDT`;
+                prof.className = "text-xl font-bold mb-6 text-green-500";
+            } else {
+                icon.className = "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl bg-gray-100 text-gray-500";
+                icon.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                title.textContent = "Settled";
+                title.className = "text-2xl font-bold mb-1 text-gray-700";
+                prof.textContent = `${parseFloat(profit).toFixed(2)} USDT`;
+                prof.className = "text-xl font-bold mb-6 text-gray-500";
+            }
+        }
+    </script>
+</body>
 </html>

@@ -423,18 +423,58 @@ app.get("/api/prices", async (req, res) => {
 });
 
 // MARKET DATA (24hr ticker)
+app.get("/api/depth", async (req, res) => {
+    try {
+        const { symbol, limit } = req.query;
+        if (!symbol) return res.status(400).json({ error: "Missing symbol" });
+        
+        const binanceSymbol = symbol.toUpperCase().replace('/', ''); 
+        const depthLimit = limit || 10;
+
+        const url = `https://api.binance.com/api/v3/depth?symbol=${binanceSymbol}&limit=${depthLimit}`;
+        
+        try {
+            const r = await fetch(url, { headers: { 'User-Agent': 'Node.js/1.0' } });
+            if (r.ok) {
+                const data = await r.json();
+                return res.json(data);
+            } else {
+                console.error("Binance depth error:", r.status);
+            }
+        } catch (e) {
+            console.error("Binance depth fetch failed:", e.message);
+        }
+
+        res.json({ bids: [], asks: [] });
+    } catch (e) {
+        console.error("Depth error:", e);
+        res.status(500).json({ error: "Failed to fetch depth" });
+    }
+});
+
 app.get("/api/markets", async (req, res) => {
     try {
         let symbolsParam = req.query.symbols;
-        if (!symbolsParam) return res.json([]);
+        let symbolParam = req.query.symbol;
         
-        // Ensure it's a string (in case of weird parsing)
-        if (typeof symbolsParam !== 'string') {
-             symbolsParam = JSON.stringify(symbolsParam);
-        }
+        // Construct Binance URL
+        let url = "";
 
-        // Try 24hr ticker first (gives price change)
-        const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbolsParam)}`;
+        if (symbolParam) {
+            // Explicit single symbol
+            url = `https://api.binance.com/api/v3/ticker/24hr?symbol=${symbolParam}`;
+        } else if (symbolsParam) {
+            // Check if it looks like a JSON array
+            if (typeof symbolsParam === 'string' && symbolsParam.trim().startsWith('[')) {
+                // It is a JSON array (e.g. from quotes.html)
+                url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbolsParam)}`;
+            } else {
+                // Assume it's a single symbol passed in 'symbols' param (e.g. from transaction.html)
+                url = `https://api.binance.com/api/v3/ticker/24hr?symbol=${symbolsParam}`;
+            }
+        } else {
+            return res.json([]);
+        }
         
         try {
             const r = await fetch(url, {
