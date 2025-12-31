@@ -1,0 +1,8 @@
+{
+  "name": "bitsafe-root",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "cd server && npm install && npm start",
+    "install-server": "cd server && npm install"
+  }
+}

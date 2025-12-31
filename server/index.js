@@ -56,6 +56,14 @@ app.use("/admin", express.static(path.join(__dirname, "admin")));
 // Security: Block access to server files when serving root
 app.use('/server', (req, res) => res.status(403).send('Forbidden'));
 
+// Security: Block access to .git and .env files
+app.use((req, res, next) => {
+  if (req.path.includes('/.git') || req.path.includes('.env')) {
+    return res.status(403).send('Forbidden');
+  }
+  next();
+});
+
 // Serve frontend files from parent directory
 app.use(express.static(path.join(__dirname, "../")));
 
