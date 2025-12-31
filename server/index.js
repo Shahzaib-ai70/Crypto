@@ -53,6 +53,12 @@ function writeStore(name, data) {
 app.use("/uploads", express.static(uploadsDir));
 app.use("/admin", express.static(path.join(__dirname, "admin")));
 
+// Security: Block access to server files when serving root
+app.use('/server', (req, res) => res.status(403).send('Forbidden'));
+
+// Serve frontend files from parent directory
+app.use(express.static(path.join(__dirname, "../")));
+
 /* =========================
    HEALTH CHECK
 ========================= */
